@@ -1,0 +1,191 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>Documents</h1>
+    <span class="header-subtitle">Upload, manage, and search documents</span>
+  </div>
+  <div class="header-actions">
+    <button mat-stroked-button (click)="processAllPending()" [disabled]="isProcessing">
+      <mat-icon>play_arrow</mat-icon>
+      Process Pending
+    </button>
+    <button mat-flat-button color="primary" (click)="triggerUpload()" [disabled]="isUploading">
+      <mat-icon>upload_file</mat-icon>
+      Upload
+    </button>
+    <input #fileInput type="file" hidden (change)="onFileSelected($event)">
+  </div>
+</div>
+
+@if (isUploading) {
+  <mat-card class="upload-progress-card">
+    <mat-card-content>
+      <mat-icon>cloud_upload</mat-icon>
+      <span>Uploading document...</span>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </mat-card-content>
+  </mat-card>
+}
+
+@if (stats) {
+  <div class="stats-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Total</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card pending">
+      <mat-card-content>
+        <div class="stat-value">{{ stats.pending ?? 0 }}</div>
+        <div class="stat-label">Pending</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card completed">
+      <mat-card-content>
+        <div class="stat-value">{{ stats.completed ?? 0 }}</div>
+        <div class="stat-label">Completed</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card failed">
+      <mat-card-content>
+        <div class="stat-value">{{ stats.failed ?? 0 }}</div>
+        <div class="stat-label">Failed</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card service-status">
+      <mat-card-content>
+        <div class="service-indicators">
+          <span class="indicator" [class.available]="stats.blobStorageAvailable">
+            <mat-icon>{{ stats.blobStorageAvailable ? 'check_circle' : 'cancel' }}</mat-icon>
+            Storage
+          </span>
+          <span class="indicator" [class.available]="stats.searchServiceAvailable">
+            <mat-icon>{{ stats.searchServiceAvailable ? 'check_circle' : 'cancel' }}</mat-icon>
+            Search
+          </span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
+
+<mat-card class="search-card">
+  <mat-card-content>
+    <div class="search-row">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Semantic search</mat-label>
+        <input matInput [(ngModel)]="searchQuery" placeholder="Search document content..." (keyup.enter)="searchDocuments()">
+        @if (searchQuery) {
+          <button matSuffix mat-icon-button (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+      <button mat-flat-button color="primary" (click)="searchDocuments()" [disabled]="isSearching || !searchQuery.trim()">
+        <mat-icon>search</mat-icon>
+        Search
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+@if (searchResults.length > 0) {
+  <div class="search-results">
+    <h2>Search Results ({{ searchResults.length }})</h2>
+    @for (result of searchResults; track result.id) {
+      <mat-card class="search-result-card">
+        <mat-card-content>
+          <div class="result-header">
+            <mat-icon>description</mat-icon>
+            <span class="result-file">{{ result.fileName || 'Unknown file' }}</span>
+            @if (result.category) {
+              <span class="result-category">{{ result.category }}</span>
+            }
+          </div>
+          <p class="result-content">{{ result.content }}</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}
+
+<mat-tab-group (selectedIndexChange)="onTabChange($event)" [selectedIndex]="selectedTabIndex">
+  <mat-tab label="All">
+    <ng-template matTabContent>
+      <ng-container *ngTemplateOutlet="documentTable"></ng-container>
+    </ng-template>
+  </mat-tab>
+  <mat-tab label="Pending">
+    <ng-template matTabContent>
+      <ng-container *ngTemplateOutlet="documentTable"></ng-container>
+    </ng-template>
+  </mat-tab>
+  <mat-tab label="Completed">
+    <ng-template matTabContent>
+      <ng-container *ngTemplateOutlet="documentTable"></ng-container>
+    </ng-template>
+  </mat-tab>
+  <mat-tab label="Failed">
+    <ng-template matTabContent>
+      <ng-container *ngTemplateOutlet="documentTable"></ng-container>
+    </ng-template>
+  </mat-tab>
+</mat-tab-group>
+
+<ng-template #documentTable>
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="36"></mat-spinner>
+    </div>
+  } @else if (documents.length === 0) {
+    <div class="empty-state">
+      <mat-icon>description</mat-icon>
+      <h3>No documents</h3>
+      <p>Upload a document to get started.</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table mat-table [dataSource]="documents">
+        <ng-container matColumnDef="fileName">
+          <th mat-header-cell *matHeaderCellDef>File Name</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.fileName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="contentType">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.contentType }}</td>
+        </ng-container>
+        <ng-container matColumnDef="fileSize">
+          <th mat-header-cell *matHeaderCellDef>Size</th>
+          <td mat-cell *matCellDef="let doc">{{ formatFileSize(doc.fileSize) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.category || '-' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="processingStatus">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let doc">
+            <span class="status-chip" [class]="getStatusColor(doc.processingStatus)">
+              {{ doc.processingStatus }}
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'short' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let doc">
+            <button mat-icon-button color="warn" (click)="deleteDocument(doc)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: docColumns;"></tr>
+      </table>
+    </div>
+  }
+</ng-template>

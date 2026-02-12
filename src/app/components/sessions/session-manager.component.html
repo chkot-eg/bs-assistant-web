@@ -1,0 +1,102 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>Sessions</h1>
+    <span class="header-subtitle">Manage conversation sessions</span>
+  </div>
+  <div class="header-actions">
+    <button mat-flat-button color="primary" (click)="loadSessions()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+</div>
+
+@if (isLoading) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Loading sessions...</p>
+  </div>
+} @else if (sessions.length === 0) {
+  <div class="empty-state">
+    <mat-icon>forum</mat-icon>
+    <h3>No sessions found</h3>
+    <p>Start a conversation to create your first session.</p>
+  </div>
+} @else {
+  <div class="session-count">{{ sessions.length }} session(s)</div>
+
+  <mat-accordion multi>
+    @for (session of sessions; track session.sessionId) {
+      <mat-expansion-panel (opened)="loadMessages(session.sessionId)">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon class="session-icon">chat</mat-icon>
+            <span class="session-id">{{ session.sessionId }}</span>
+          </mat-panel-title>
+          <mat-panel-description>
+            @if (session.lastActivity) {
+              <span class="session-date">{{ formatDate(session.lastActivity) }}</span>
+            }
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="session-details">
+          <div class="session-meta">
+            @if (session.createdAt) {
+              <span class="meta-item">
+                <mat-icon>schedule</mat-icon>
+                Created: {{ formatDate(session.createdAt) }}
+              </span>
+            }
+            @if (session.lastActivity) {
+              <span class="meta-item">
+                <mat-icon>update</mat-icon>
+                Last active: {{ formatDate(session.lastActivity) }}
+              </span>
+            }
+          </div>
+
+          <div class="session-actions">
+            <button mat-stroked-button color="warn" (click)="clearSession(session)">
+              <mat-icon>clear_all</mat-icon>
+              Clear Messages
+            </button>
+            <button mat-stroked-button color="warn" (click)="deleteSession(session)">
+              <mat-icon>delete</mat-icon>
+              Delete Session
+            </button>
+          </div>
+
+          @if (loadingMessages[session.sessionId]) {
+            <div class="messages-loading">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>Loading messages...</span>
+            </div>
+          } @else if (expandedMessages[session.sessionId]) {
+            <div class="messages-list">
+              @if (expandedMessages[session.sessionId].length === 0) {
+                <p class="no-messages">No messages in this session.</p>
+              }
+              @for (msg of expandedMessages[session.sessionId]; track $index) {
+                <div class="message-item" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+                  <div class="message-header">
+                    <span class="role-badge" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+                      {{ msg.role }}
+                    </span>
+                    @if (msg.timestamp) {
+                      <span class="message-time">{{ formatDate(msg.timestamp) }}</span>
+                    }
+                    @if (msg.executionTimeMs) {
+                      <span class="exec-time">{{ msg.executionTimeMs }}ms</span>
+                    }
+                  </div>
+                  <div class="message-content">{{ truncateContent(msg.content) }}</div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </mat-expansion-panel>
+    }
+  </mat-accordion>
+}

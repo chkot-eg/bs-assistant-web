@@ -1,0 +1,127 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>Metrics</h1>
+    <span class="header-subtitle">Agentic query performance &amp; tool usage</span>
+  </div>
+  <div class="header-actions">
+    <mat-slide-toggle [checked]="autoRefresh" (change)="toggleAutoRefresh()">
+      Auto-refresh
+    </mat-slide-toggle>
+    <button mat-flat-button color="primary" (click)="loadMetrics()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+</div>
+
+@if (isLoading && !agenticMetrics) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Loading metrics...</p>
+  </div>
+} @else if (agenticMetrics) {
+  <div class="stats-grid">
+    <mat-card class="stat-card primary">
+      <mat-card-content>
+        <mat-icon>query_stats</mat-icon>
+        <div class="stat-value">{{ agenticMetrics.totalQueries }}</div>
+        <div class="stat-label">Total Queries</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card success">
+      <mat-card-content>
+        <mat-icon>trending_up</mat-icon>
+        <div class="stat-value">{{ formatPercent(agenticMetrics.successRate) }}</div>
+        <div class="stat-label">Success Rate</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card info">
+      <mat-card-content>
+        <mat-icon>speed</mat-icon>
+        <div class="stat-value">{{ formatMs(agenticMetrics.avgExecutionTimeMs) }}</div>
+        <div class="stat-label">Avg Execution Time</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card accent">
+      <mat-card-content>
+        <mat-icon>group</mat-icon>
+        <div class="stat-value">{{ agenticMetrics.activeSessions }}</div>
+        <div class="stat-label">Active Sessions</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="secondary-stats">
+    <mat-card>
+      <mat-card-content>
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-item-label">Goals Achieved</span>
+            <span class="stat-item-value success-text">{{ agenticMetrics.goalsAchieved }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Goals Failed</span>
+            <span class="stat-item-value error-text">{{ agenticMetrics.goalsFailed }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Avg Iterations</span>
+            <span class="stat-item-value">{{ agenticMetrics.avgIterations | number:'1.1-1' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Max Iterations</span>
+            <span class="stat-item-value">{{ agenticMetrics.maxIterations }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Max Exec Time</span>
+            <span class="stat-item-value">{{ formatMs(agenticMetrics.maxExecutionTimeMs) }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  @if (toolEntries.length > 0) {
+    <div class="tools-section">
+      <h2>Tool Performance</h2>
+      <mat-card>
+        <table mat-table [dataSource]="toolEntries" class="tool-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Tool</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalCalls">
+            <th mat-header-cell *matHeaderCellDef>Calls</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.metrics.totalCalls }}</td>
+          </ng-container>
+          <ng-container matColumnDef="successes">
+            <th mat-header-cell *matHeaderCellDef>Success</th>
+            <td mat-cell *matCellDef="let entry" class="success-text">{{ entry.metrics.successes }}</td>
+          </ng-container>
+          <ng-container matColumnDef="errors">
+            <th mat-header-cell *matHeaderCellDef>Errors</th>
+            <td mat-cell *matCellDef="let entry" class="error-text">{{ entry.metrics.errors }}</td>
+          </ng-container>
+          <ng-container matColumnDef="successRate">
+            <th mat-header-cell *matHeaderCellDef>Rate</th>
+            <td mat-cell *matCellDef="let entry">
+              <span class="rate-badge" [class.high]="entry.metrics.successRate >= 0.9" [class.low]="entry.metrics.successRate < 0.9">
+                {{ formatPercent(entry.metrics.successRate) }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="avgTime">
+            <th mat-header-cell *matHeaderCellDef>Avg Time</th>
+            <td mat-cell *matCellDef="let entry">{{ formatMs(entry.metrics.avgExecutionTimeMs) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="maxTime">
+            <th mat-header-cell *matHeaderCellDef>Max Time</th>
+            <td mat-cell *matCellDef="let entry">{{ formatMs(entry.metrics.maxExecutionTimeMs) }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="toolColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: toolColumns;"></tr>
+        </table>
+      </mat-card>
+    </div>
+  }
+}

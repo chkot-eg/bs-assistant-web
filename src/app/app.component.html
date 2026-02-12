@@ -9,22 +9,13 @@
 <div class="app-container">
   <app-sidebar></app-sidebar>
   <div class="main-content">
-    <!-- Main content area -->
-    <div class="welcome-section">
-      <h1 class="welcome-title">Nexstep Cloud</h1>
-      <div class="welcome-logo">
-        <img src="logo.png" alt="EG Logo" class="eg-logo">
-      </div>
-      <p class="welcome-tagline">Let's go further</p>
-    </div>
+    <router-outlet></router-outlet>
   </div>
 </div>
 
-<!-- Floating Chat Components -->
+<!-- Floating Chat Components (overlay, always visible) -->
 <app-floating-chat-button></app-floating-chat-button>
 <app-floating-chat-panel></app-floating-chat-panel>
 
 <!-- Feature Tour -->
 <app-feature-tour></app-feature-tour>
-
-<router-outlet></router-outlet>

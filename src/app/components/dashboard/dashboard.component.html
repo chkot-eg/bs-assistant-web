@@ -1,0 +1,91 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>Dashboard</h1>
+    <span class="header-subtitle">ERP Assistant overview</span>
+  </div>
+  <div class="header-actions">
+    <button mat-flat-button color="primary" (click)="loadDashboard()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+</div>
+
+@if (isLoading) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Loading dashboard...</p>
+  </div>
+} @else {
+  <div class="stats-grid">
+    <mat-card class="stat-card primary">
+      <mat-card-content>
+        <mat-icon>query_stats</mat-icon>
+        <div class="stat-value">{{ metrics?.totalQueries ?? 0 }}</div>
+        <div class="stat-label">Total Queries</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card success">
+      <mat-card-content>
+        <mat-icon>trending_up</mat-icon>
+        <div class="stat-value">{{ formatPercent(metrics?.successRate) }}</div>
+        <div class="stat-label">Success Rate</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card accent">
+      <mat-card-content>
+        <mat-icon>group</mat-icon>
+        <div class="stat-value">{{ metrics?.activeSessions ?? 0 }}</div>
+        <div class="stat-label">Active Sessions</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card info">
+      <mat-card-content>
+        <mat-icon>description</mat-icon>
+        <div class="stat-value">{{ docStats?.total ?? 0 }}</div>
+        <div class="stat-label">Documents</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  @if (healthStatuses.length > 0) {
+    <div class="health-strip-section">
+      <h2>Service Health</h2>
+      <mat-card>
+        <mat-card-content>
+          <div class="health-strip">
+            @for (svc of healthStatuses; track svc.key) {
+              <div class="health-dot-item">
+                <span class="health-dot" [class.up]="svc.status.status === 'UP'" [class.down]="svc.status.status === 'DOWN'"></span>
+                <span class="health-name">{{ svc.key }}</span>
+              </div>
+            }
+          </div>
+          <div class="health-summary">
+            {{ getHealthyCount() }}/{{ getTotalServices() }} services healthy
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <div class="nav-section">
+    <h2>Quick Navigation</h2>
+    <div class="nav-grid">
+      @for (card of navCards; track card.route) {
+        <mat-card class="nav-card" [routerLink]="card.route">
+          <mat-card-content>
+            <div class="nav-icon" [style.background]="card.color + '15'" [style.color]="card.color">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </div>
+            <div class="nav-info">
+              <h3>{{ card.title }}</h3>
+              <p>{{ card.description }}</p>
+            </div>
+            <mat-icon class="nav-arrow">arrow_forward</mat-icon>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </div>
+}
