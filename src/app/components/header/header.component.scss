@@ -114,6 +114,32 @@
   }
 }
 
+.security-info-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #023266;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  margin-right: 8px;
+
+  &:hover {
+    background: #034694;
+  }
+
+  .security-icon {
+    font-size: 15px;
+  }
+}
+
 // Sub Navigation Bar
 .sub-nav {
   display: flex;

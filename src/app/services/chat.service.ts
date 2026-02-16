@@ -2,8 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, Subject } from 'rxjs';
 import { catchError, retry, tap, takeUntil } from 'rxjs/operators';
-import { Message, ChatResponse } from '../models/message.model';
+import { Message, QueryRequest, QueryResponse, MessageMetadata, CancelResponse } from '../models/message.model';
+import { ChatMessageDto } from '../models/session.model';
 import { environment } from '../../environments/environment';
+import { AgenticStreamService } from './agentic-stream.service';
+import { SseEvent } from '../models/sse-events.model';
 
 @Injectable({
   providedIn: 'root'
@@ -24,7 +27,10 @@ export class ChatService {
   private lastRequestTime = 0;
   private readonly MIN_REQUEST_INTERVAL = 1000; // 1 second
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private agenticStreamService: AgenticStreamService
+  ) {
     this.initializeSession();
   }
 
@@ -53,7 +59,7 @@ export class ChatService {
     return true;
   }
 
-  sendMessage(content: string, useContext: boolean = true): Observable<ChatResponse> {
+  sendMessage(content: string, useContext: boolean = true): Observable<QueryResponse> {
     if (!this.canSendRequest()) {
       return throwError(() => new Error('Please wait before sending another message'));
     }
@@ -74,37 +80,43 @@ export class ChatService {
       'X-Session-ID': this.currentSessionId || ''
     });
 
-    const body = {
-      prompt: content,
-      sessionId: useContext ? this.currentSessionId : undefined,
-      maxHistoryMessages: 10
+    const body: QueryRequest = {
+      query: content,
+      library: 'ADB800',
+      sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
+      maxIterations: 5,
+      includeDebugDetails: false
     };
 
-    return this.http.post<ChatResponse>(`${this.apiUrl}/api/chat/query`, body, { headers })
+    return this.http.post<QueryResponse>(`${this.apiUrl}/api/v1/query/agentic`, body, { headers })
       .pipe(
-        takeUntil(this.abortController$), // Allow canceling the request
+        takeUntil(this.abortController$),
         retry(2),
         tap(response => {
           this.isLoadingSubject.next(false);
 
-          if (response.success && response.result) {
+          if (response.success) {
+            const content = this.formatResponseContent(response);
+            const metadata: MessageMetadata = {
+              executionTime: response.executionTimeMs,
+              executionPath: response.executionPath,
+              agentStrategy: response.agentStrategy,
+              iterationCount: response.iterationCount,
+              maxIterations: response.maxIterations,
+              goalAchieved: response.goalAchieved,
+              conversationContextLoaded: response.conversationContextLoaded,
+              executedSql: response.executedSql,
+              executionSteps: response.executionSteps
+            };
             const assistantMessage: Message = {
               id: this.generateMessageId(),
               role: 'assistant',
-              content: response.result,
+              content: content,
               timestamp: new Date(),
-              metadata: response.metadata || {
-                executionTime: response.executionTime,
-                tablesUsed: response.tablesUsed,
-                hasContext: response.hasContext
-              }
+              metadata: metadata,
+              queryResponse: response
             };
             this.addMessage(assistantMessage);
-
-            // Validate database verification
-            if (response.metadata && response.tablesUsed && response.tablesUsed.length === 0) {
-              console.warn('Warning: Response not verified with database', response);
-            }
           }
         }),
         catchError(error => {
@@ -115,7 +127,7 @@ export class ChatService {
             const errorMessage: Message = {
               id: this.generateMessageId(),
               role: 'assistant',
-              content: error.error?.error || 'An error occurred. Please try again.',
+              content: error.userMessage || error.error?.error || error.error?.message || 'An error occurred. Please try again.',
               timestamp: new Date(),
               isError: true
             };
@@ -127,9 +139,59 @@ export class ChatService {
       );
   }
 
+  public formatResponseContent(response: QueryResponse): string {
+    if (response.error) {
+      return `Error: ${response.error}`;
+    }
+
+    // If data is a string (already formatted by the agentic service), use as-is
+    if (typeof response.data === 'string') {
+      return response.data;
+    }
+
+    const parts: string[] = [];
+
+    // If data is an array of rows
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      parts.push(`Found ${response.rowCount ?? response.data.length} results.`);
+
+      // Show first few rows as a preview
+      const preview = response.data.slice(0, 5);
+      const headers = response.columns ?? Object.keys(preview[0]);
+      parts.push('\n| ' + headers.join(' | ') + ' |');
+      parts.push('| ' + headers.map(() => '---').join(' | ') + ' |');
+      for (const row of preview) {
+        parts.push('| ' + headers.map(h => String(row[h] ?? '')).join(' | ') + ' |');
+      }
+
+      if (response.data.length > 5) {
+        parts.push(`\n... and ${response.data.length - 5} more rows.`);
+      }
+    } else if (response.data) {
+      parts.push(JSON.stringify(response.data, null, 2));
+    } else {
+      parts.push('Query executed successfully (no data returned).');
+    }
+
+    if (response.executedSql) {
+      parts.push(`\nSQL: ${response.executedSql}`);
+    }
+
+    return parts.join('\n');
+  }
+
   stopCurrentRequest(): void {
     this.abortController$.next();
     this.isLoadingSubject.next(false);
+
+    // Notify backend to cancel server-side execution
+    if (this.currentSessionId) {
+      this.http.delete<CancelResponse>(
+        `${this.apiUrl}/api/v1/query/agentic/${this.currentSessionId}/cancel`
+      ).subscribe({
+        error: () => {} // Best-effort cancel, ignore errors
+      });
+    }
 
     // Add a message indicating the request was stopped
     const stoppedMessage: Message = {
@@ -154,7 +216,7 @@ export class ChatService {
   clearSession(): Observable<any> {
     if (!this.currentSessionId) return throwError(() => new Error('No active session'));
 
-    return this.http.post(`${this.apiUrl}/api/chat/sessions/${this.currentSessionId}/clear`, {})
+    return this.http.post(`${this.apiUrl}/api/v1/sessions/${this.currentSessionId}/clear`, {})
       .pipe(
         tap(() => this.clearMessages())
       );
@@ -163,7 +225,7 @@ export class ChatService {
   getSessionContext(): Observable<any> {
     if (!this.currentSessionId) return throwError(() => new Error('No active session'));
 
-    return this.http.get(`${this.apiUrl}/api/chat/sessions/${this.currentSessionId}/context`);
+    return this.http.get(`${this.apiUrl}/api/v1/sessions/${this.currentSessionId}/context`);
   }
 
   private generateMessageId(): string {
@@ -185,6 +247,88 @@ export class ChatService {
     a.download = `chat-export-${Date.now()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  sendMessageStreaming(content: string, useContext: boolean = true): Observable<SseEvent> {
+    if (!this.canSendRequest()) {
+      return throwError(() => new Error('Please wait before sending another message'));
+    }
+
+    this.isLoadingSubject.next(true);
+
+    const userMessage: Message = {
+      id: this.generateMessageId(),
+      role: 'user',
+      content: content,
+      timestamp: new Date()
+    };
+    this.addMessage(userMessage);
+
+    return this.agenticStreamService.connectStream({
+      query: content,
+      library: 'ADB800',
+      sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
+      maxIterations: 5
+    });
+  }
+
+  addStreamingResult(content: string, metadata: MessageMetadata, queryResponse?: QueryResponse): void {
+    const assistantMessage: Message = {
+      id: this.generateMessageId(),
+      role: 'assistant',
+      content: content,
+      timestamp: new Date(),
+      metadata: metadata,
+      queryResponse: queryResponse
+    };
+    this.addMessage(assistantMessage);
+    this.isLoadingSubject.next(false);
+  }
+
+  addUserMessage(content: string): void {
+    const userMessage: Message = {
+      id: this.generateMessageId(),
+      role: 'user',
+      content: content,
+      timestamp: new Date()
+    };
+    this.addMessage(userMessage);
+  }
+
+  addSystemMessage(content: string, contentType: string = 'text'): void {
+    const message: Message = {
+      id: this.generateMessageId(),
+      role: 'assistant',
+      content: content,
+      timestamp: new Date(),
+      contentType: contentType as any
+    };
+    this.addMessage(message);
+  }
+
+  setLoading(loading: boolean): void {
+    this.isLoadingSubject.next(loading);
+  }
+
+  switchToSession(sessionId: string, messages: Message[]): void {
+    this.currentSessionId = sessionId;
+    localStorage.setItem('sessionId', sessionId);
+    this.messagesSubject.next(messages);
+  }
+
+  startNewSession(): void {
+    this.generateNewSession();
+    this.messagesSubject.next([]);
+  }
+
+  mapBackendMessages(dtos: ChatMessageDto[]): Message[] {
+    return dtos.map((dto, index) => ({
+      id: `hist_${Date.now()}_${index}`,
+      role: dto.role as 'user' | 'assistant',
+      content: dto.content,
+      timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
+      metadata: dto.executionTimeMs ? { executionTime: dto.executionTimeMs } : undefined
+    }));
   }
 
   getCurrentSessionId(): string | null {

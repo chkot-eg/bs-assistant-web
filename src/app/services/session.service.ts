@@ -2,7 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Session, SessionAnalytics } from '../models/session.model';
+import {
+  SessionListResponse, SessionDetailResponse,
+  SessionMessagesResponse, SessionContextResponse, ActionResponse
+} from '../models/session.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,31 +15,32 @@ export class SessionService {
 
   constructor(private http: HttpClient) {}
 
-  getSessions(): Observable<{ success: boolean; sessions: Session[] }> {
-    return this.http.get<{ success: boolean; sessions: Session[] }>(
-      `${this.apiUrl}/api/chat/sessions`
-    );
+  createSession(sessionId?: string): Observable<SessionDetailResponse> {
+    const body = sessionId ? { sessionId } : {};
+    return this.http.post<SessionDetailResponse>(`${this.apiUrl}/api/v1/sessions`, body);
   }
 
-  getSession(sessionId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/api/chat/sessions/${sessionId}`);
+  getSessions(): Observable<SessionListResponse> {
+    return this.http.get<SessionListResponse>(`${this.apiUrl}/api/v1/sessions`);
   }
 
-  deleteSession(sessionId: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/api/chat/sessions/${sessionId}`);
+  getSession(sessionId: string): Observable<SessionDetailResponse> {
+    return this.http.get<SessionDetailResponse>(`${this.apiUrl}/api/v1/sessions/${sessionId}`);
   }
 
-  getSessionMessages(sessionId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/api/chat/sessions/${sessionId}/messages`);
+  deleteSession(sessionId: string): Observable<ActionResponse> {
+    return this.http.delete<ActionResponse>(`${this.apiUrl}/api/v1/sessions/${sessionId}`);
   }
 
-  getSessionAnalytics(): Observable<{ success: boolean; analytics: SessionAnalytics }> {
-    return this.http.get<{ success: boolean; analytics: SessionAnalytics }>(
-      `${this.apiUrl}/api/analytics/sessions`
-    );
+  clearSession(sessionId: string): Observable<ActionResponse> {
+    return this.http.post<ActionResponse>(`${this.apiUrl}/api/v1/sessions/${sessionId}/clear`, {});
   }
 
-  getContextEffectiveness(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/api/analytics/context-effectiveness`);
+  getSessionContext(sessionId: string): Observable<SessionContextResponse> {
+    return this.http.get<SessionContextResponse>(`${this.apiUrl}/api/v1/sessions/${sessionId}/context`);
+  }
+
+  getSessionMessages(sessionId: string): Observable<SessionMessagesResponse> {
+    return this.http.get<SessionMessagesResponse>(`${this.apiUrl}/api/v1/sessions/${sessionId}/messages`);
   }
 }

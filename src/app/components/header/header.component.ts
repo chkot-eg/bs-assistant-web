@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
     selector: 'app-header',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, RouterModule],
     template: `
     <header class="header">
       <!-- Top Navigation Bar -->
@@ -24,6 +25,10 @@ import { CommonModule } from '@angular/common';
           </nav>
         </div>
         <div class="top-bar-right">
+          <a routerLink="/security/dashboard" class="security-info-btn">
+            <span class="security-icon">&#x1F6E1;</span>
+            Security Info
+          </a>
           <button class="icon-btn search-btn">
             <span class="search-icon">&#x1F50D;</span>
           </button>

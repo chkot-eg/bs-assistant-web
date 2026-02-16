@@ -50,10 +50,17 @@
         <mat-icon>download</mat-icon>
       </button>
       <button mat-icon-button
-              (click)="clearChat()"
-              matTooltip="Clear conversation "
+              (click)="startNewConversation()"
+              matTooltip="New Chat"
               class="header-btn">
-         <mat-icon>refresh</mat-icon>
+         <mat-icon>add_comment</mat-icon>
+      </button>
+      <button mat-icon-button
+              (click)="toggleHistory()"
+              [matTooltip]="showHistory ? 'Back to chat' : 'Conversation history'"
+              class="header-btn"
+              [class.active]="showHistory">
+        <mat-icon>{{ showHistory ? 'chat' : 'history' }}</mat-icon>
       </button>
       <button mat-icon-button
               (click)="maximizeChat($event)"
@@ -70,6 +77,7 @@
     </div>
   </div>
 
+  @if (!showHistory) {
   <!-- Messages Container -->
   <div class="messages-container" #scrollContainer (scroll)="onScroll($event)">
     @if ((messages$ | async)?.length === 0) {
@@ -117,42 +125,130 @@
           </div>
         }
         <div class="message-bubble">
-          <div class="message-content" [class.error-content]="message.isError">
-            {{ message.content }}
-          </div>
+          @if (message.role === 'assistant' && !message.isError) {
+            <div class="message-content markdown-content"
+                 [innerHTML]="renderMarkdown(message.content)">
+            </div>
+          } @else {
+            <div class="message-content" [class.error-content]="message.isError">
+              {{ message.content }}
+            </div>
+          }
 
-          <!-- Metadata Display -->
+          <!-- Rich Metadata Display -->
           @if (message.metadata && message.role === 'assistant') {
             <div class="message-metadata">
-              @if (message.metadata.executionTime) {
-                <span class="metadata-chip" matTooltip="Execution Time">
-                  <mat-icon>schedule</mat-icon>
-                  {{ message.metadata.executionTime }}ms
-                </span>
+              <div class="metadata-chips">
+                @if (message.metadata.executionPath) {
+                  <span class="metadata-chip execution-path"
+                        [class.agentic]="message.metadata.executionPath === 'AGENTIC'"
+                        [class.direct]="message.metadata.executionPath === 'DIRECT_SERVICE'"
+                        [class.mcp]="message.metadata.executionPath === 'MCP_SUBPROCESS'"
+                        [matTooltip]="'Execution: ' + message.metadata.executionPath">
+                    <mat-icon>{{ message.metadata.executionPath === 'AGENTIC' ? 'psychology' :
+                                 message.metadata.executionPath === 'MCP_SUBPROCESS' ? 'hub' : 'bolt' }}</mat-icon>
+                    {{ message.metadata.executionPath === 'AGENTIC' ? 'Agentic' :
+                       message.metadata.executionPath === 'MCP_SUBPROCESS' ? 'MCP' : 'Direct' }}
+                  </span>
+                }
+                @if (message.metadata.executionTime) {
+                  <span class="metadata-chip" matTooltip="Execution Time">
+                    <mat-icon>schedule</mat-icon>
+                    {{ message.metadata.executionTime }}ms
+                  </span>
+                }
+                @if (message.metadata.iterationCount != null) {
+                  <span class="metadata-chip" matTooltip="Agent iterations">
+                    <mat-icon>loop</mat-icon>
+                    {{ message.metadata.iterationCount }}/{{ message.metadata.maxIterations || 5 }}
+                  </span>
+                }
+                @if (message.metadata.goalAchieved != null) {
+                  <span class="metadata-chip"
+                        [class.success]="message.metadata.goalAchieved"
+                        [class.failure]="!message.metadata.goalAchieved"
+                        [matTooltip]="message.metadata.goalAchieved ? 'Goal achieved' : 'Goal not achieved'">
+                    <mat-icon>{{ message.metadata.goalAchieved ? 'check_circle' : 'cancel' }}</mat-icon>
+                    {{ message.metadata.goalAchieved ? 'Achieved' : 'Not achieved' }}
+                  </span>
+                }
+                @if (message.metadata.tablesUsed && message.metadata.tablesUsed.length > 0) {
+                  <span class="metadata-chip" matTooltip="Tables Used">
+                    <mat-icon>table_chart</mat-icon>
+                    {{ message.metadata.tablesUsed.join(', ') }}
+                  </span>
+                }
+                @if (message.metadata.tablesUsed && message.metadata.tablesUsed.length === 0) {
+                  <span class="metadata-chip warning" matTooltip="No database verification">
+                    <mat-icon>warning</mat-icon>
+                    Not verified
+                  </span>
+                }
+                @if (message.metadata.conversationContextLoaded) {
+                  <span class="metadata-chip context" matTooltip="Using conversation history">
+                    <mat-icon>psychology</mat-icon>
+                    Context
+                  </span>
+                }
+                @if (message.metadata.cacheHit) {
+                  <span class="metadata-chip" matTooltip="Cached Response">
+                    <mat-icon>cached</mat-icon>
+                    Cached
+                  </span>
+                }
+              </div>
+
+              @if (message.metadata.agentStrategy) {
+                <div class="metadata-strategy">
+                  <mat-icon>lightbulb</mat-icon>
+                  <span>{{ message.metadata.agentStrategy }}</span>
+                </div>
               }
-              @if (message.metadata.tablesUsed && message.metadata.tablesUsed.length > 0) {
-                <span class="metadata-chip" matTooltip="Tables Used">
-                  <mat-icon>table_chart</mat-icon>
-                  {{ message.metadata.tablesUsed.join(', ') }}
-                </span>
+
+              @if (message.metadata.executedSql) {
+                <div class="metadata-sql-section">
+                  <button class="metadata-toggle" (click)="toggleSqlExpanded(message.id)">
+                    <mat-icon>{{ isSqlExpanded(message.id) ? 'expand_less' : 'code' }}</mat-icon>
+                    <span>{{ isSqlExpanded(message.id) ? 'Hide SQL' : 'Show SQL' }}</span>
+                  </button>
+                  @if (isSqlExpanded(message.id)) {
+                    <div class="sql-code-block" [@slideDown]>
+                      <pre><code>{{ message.metadata.executedSql }}</code></pre>
+                    </div>
+                  }
+                </div>
               }
-              @if (message.metadata.tablesUsed && message.metadata.tablesUsed.length === 0) {
-                <span class="metadata-chip warning" matTooltip="No database verification">
-                  <mat-icon>warning</mat-icon>
-                  Not verified
-                </span>
-              }
-              <!-- @if (message.metadata.hasContext) {
-                <span class="metadata-chip" matTooltip="Context Used">
-                  <mat-icon>history</mat-icon>
-                  Context
-                </span>
-              } -->
-              @if (message.metadata.cacheHit) {
-                <span class="metadata-chip" matTooltip="Cached Response">
-                  <mat-icon>cached</mat-icon>
-                  Cached
-                </span>
+
+              @if (message.metadata.executionSteps && message.metadata.executionSteps.length > 0) {
+                <div class="metadata-steps-section">
+                  <button class="metadata-toggle" (click)="toggleStepsExpanded(message.id)">
+                    <mat-icon>{{ isStepsExpanded(message.id) ? 'expand_less' : 'timeline' }}</mat-icon>
+                    <span>{{ isStepsExpanded(message.id) ? 'Hide steps' : 'Steps (' + message.metadata.executionSteps.length + ')' }}</span>
+                  </button>
+                  @if (isStepsExpanded(message.id)) {
+                    <div class="execution-timeline" [@slideDown]>
+                      @for (step of message.metadata.executionSteps; track step.attemptNumber) {
+                        <div class="timeline-step" [class.success]="step.success" [class.failure]="!step.success">
+                          <div class="timeline-dot">
+                            <mat-icon>{{ step.success ? 'check' : 'close' }}</mat-icon>
+                          </div>
+                          <div class="timeline-content">
+                            <span class="step-tool">{{ step.toolUsed }}</span>
+                            @if (step.executionTimeMs) {
+                              <span class="step-time">{{ step.executionTimeMs }}ms</span>
+                            }
+                            @if (step.rowCount != null) {
+                              <span class="step-rows">{{ step.rowCount }} rows</span>
+                            }
+                            @if (step.reason) {
+                              <span class="step-reason">{{ step.reason }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
               }
             </div>
           }
@@ -164,11 +260,45 @@
       </div>
     }
 
+    <!-- Streaming Progress Area -->
+    @if (isStreaming && streamingSteps.length > 0) {
+      <div class="streaming-progress" [@slideDown]>
+        <div class="streaming-header">
+          <mat-icon class="streaming-icon spinning">sync</mat-icon>
+          <span>Processing your query...</span>
+        </div>
+        @for (step of streamingSteps; track step.timestamp) {
+          <div class="streaming-step" [@slideDown]
+               [class.step-success]="step.success === true"
+               [class.step-error]="step.success === false"
+               [class.step-context]="step.type === 'context'">
+            <mat-icon class="step-icon">{{ step.icon }}</mat-icon>
+            <span class="step-message">{{ step.message }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Upload Progress -->
+    @if (isUploading) {
+      <div class="message message-assistant">
+        <div class="message-bubble">
+          <div class="upload-progress">
+            <mat-icon class="upload-icon">cloud_upload</mat-icon>
+            <div class="upload-info">
+              <span>Uploading document...</span>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" [style.width.%]="uploadProgress"></div>
+              </div>
+              <span class="progress-text">{{ uploadProgress }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (isLoading$ | async) {
       <div class="message message-assistant">
-        <!-- <div class="avatar assistant">
-          <mat-icon>support_agent</mat-icon>
-        </div> -->
         <div class="message-bubble">
           <div class="typing-indicator">
             <span></span>
@@ -194,10 +324,15 @@
         </button>
         <button mat-icon-button
                 class="action-btn attach-btn"
-                matTooltip="Attach file (coming soon)"
-                disabled>
+                matTooltip="Upload a document"
+                (click)="fileInput.click()">
           <mat-icon>attach_file</mat-icon>
         </button>
+        <input type="file"
+               #fileInput
+               hidden
+               accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json"
+               (change)="onFileSelected($event)">
       </div>
 
       @if (showContactSupport) {
@@ -342,4 +477,57 @@
       }
     </div>
   </div>
+  } @else {
+  <!-- History Panel -->
+  <div class="history-panel">
+    <div class="history-header">
+      <h4>Conversations</h4>
+      <button mat-stroked-button
+              class="new-chat-btn"
+              (click)="startNewConversation()">
+        <mat-icon>add</mat-icon>
+        New Chat
+      </button>
+    </div>
+
+    @if (isLoadingHistory) {
+      <div class="history-loading">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Loading conversations...</span>
+      </div>
+    } @else if (historySessions.length === 0) {
+      <div class="history-empty">
+        <mat-icon>forum</mat-icon>
+        <p>No previous conversations</p>
+      </div>
+    } @else {
+      <div class="history-list">
+        @for (session of historySessions; track session.sessionId) {
+          <div class="history-item"
+               [class.active]="isCurrentSession(session.sessionId)"
+               (click)="selectSession(session)">
+            <div class="history-item-icon">
+              <mat-icon>{{ isCurrentSession(session.sessionId) ? 'chat' : 'chat_bubble_outline' }}</mat-icon>
+            </div>
+            <div class="history-item-content">
+              <span class="history-item-preview">{{ getSessionPreview(session) }}</span>
+              <span class="history-item-date">{{ formatSessionDate(session.lastActivity) }}</span>
+            </div>
+            <button mat-icon-button
+                    class="history-item-delete"
+                    (click)="deleteHistorySession($event, session)"
+                    [disabled]="isDeletingSession === session.sessionId"
+                    matTooltip="Delete conversation">
+              @if (isDeletingSession === session.sessionId) {
+                <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+                <mat-icon>delete_outline</mat-icon>
+              }
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  }
 </div>

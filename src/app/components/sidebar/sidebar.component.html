@@ -1,4 +1,20 @@
 <div class="sidebar">
+  <!-- Navigation Section (only in /security/* routes) -->
+  @if (showNav) {
+    <div class="nav-section">
+      <div class="nav-header">Navigation</div>
+      @for (nav of navItems; track nav.route) {
+        <a [routerLink]="nav.route" routerLinkActive="active" class="nav-item">
+          <mat-icon class="nav-icon">{{ nav.icon }}</mat-icon>
+          <span class="nav-label">{{ nav.label }}</span>
+        </a>
+      }
+    </div>
+
+    <div class="nav-divider"></div>
+  }
+
+  <!-- ERP Shortcuts -->
   <div class="shortcut-list">
     @for (item of shortcuts; track item.key) {
       <button class="shortcut-btn">
