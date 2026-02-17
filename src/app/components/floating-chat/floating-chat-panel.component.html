@@ -227,7 +227,7 @@
                   </button>
                   @if (isStepsExpanded(message.id)) {
                     <div class="execution-timeline" [@slideDown]>
-                      @for (step of message.metadata.executionSteps; track step.attemptNumber) {
+                      @for (step of message.metadata.executionSteps; track step.attemptNumber; let i = $index) {
                         <div class="timeline-step" [class.success]="step.success" [class.failure]="!step.success">
                           <div class="timeline-dot">
                             <mat-icon>{{ step.success ? 'check' : 'close' }}</mat-icon>
@@ -242,6 +242,19 @@
                             }
                             @if (step.reason) {
                               <span class="step-reason">{{ step.reason }}</span>
+                            }
+                            @if (step.sqlQuery) {
+                              <div class="step-sql-section">
+                                <button class="step-sql-toggle" (click)="toggleStepSqlExpanded(message.id, i)">
+                                  <mat-icon>{{ isStepSqlExpanded(message.id, i) ? 'expand_less' : 'data_object' }}</mat-icon>
+                                  <span>{{ isStepSqlExpanded(message.id, i) ? 'Hide SQL' : 'Show SQL' }}</span>
+                                </button>
+                                @if (isStepSqlExpanded(message.id, i)) {
+                                  <div class="step-sql-code" [@slideDown]>
+                                    <pre><code>{{ step.sqlQuery }}</code></pre>
+                                  </div>
+                                }
+                              </div>
                             }
                           </div>
                         </div>
@@ -267,13 +280,50 @@
           <mat-icon class="streaming-icon spinning">sync</mat-icon>
           <span>Processing your query...</span>
         </div>
-        @for (step of streamingSteps; track step.timestamp) {
+        @for (step of streamingSteps; track step.timestamp; let i = $index) {
           <div class="streaming-step" [@slideDown]
                [class.step-success]="step.success === true"
                [class.step-error]="step.success === false"
-               [class.step-context]="step.type === 'context'">
+               [class.step-context]="step.type === 'context'"
+               [class.step-execution]="step.type === 'execution_step'">
             <mat-icon class="step-icon">{{ step.icon }}</mat-icon>
-            <span class="step-message">{{ step.message }}</span>
+            <div class="step-details">
+              @if (step.type === 'execution_step') {
+                <div class="step-execution-header">
+                  <span class="step-tool-badge">{{ step.toolUsed }}</span>
+                  @if (step.attemptNumber) {
+                    <span class="step-iteration">Iter {{ step.attemptNumber }}</span>
+                  }
+                  @if (step.executionTimeMs) {
+                    <span class="step-time-badge">{{ step.executionTimeMs }}ms</span>
+                  }
+                  @if (step.success && step.rowCount != null) {
+                    <span class="step-rows-badge">{{ step.rowCount }} rows</span>
+                  }
+                </div>
+                @if (step.reason) {
+                  <span class="step-message">{{ step.reason }}</span>
+                }
+                @if (!step.success && step.errorMessage) {
+                  <span class="step-error-msg">{{ step.errorMessage }}</span>
+                }
+                @if (step.sql) {
+                  <div class="step-sql-section">
+                    <button class="step-sql-toggle" (click)="toggleStreamingSqlExpanded(i)">
+                      <mat-icon>{{ isStreamingSqlExpanded(i) ? 'expand_less' : 'data_object' }}</mat-icon>
+                      <span>{{ isStreamingSqlExpanded(i) ? 'Hide SQL' : 'Show SQL' }}</span>
+                    </button>
+                    @if (isStreamingSqlExpanded(i)) {
+                      <div class="step-sql-code" [@slideDown]>
+                        <pre><code>{{ step.sql }}</code></pre>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <span class="step-message">{{ step.message }}</span>
+              }
+            </div>
           </div>
         }
       </div>

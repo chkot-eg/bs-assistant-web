@@ -7,6 +7,7 @@ import { ChatMessageDto } from '../models/session.model';
 import { environment } from '../../environments/environment';
 import { AgenticStreamService } from './agentic-stream.service';
 import { SseEvent } from '../models/sse-events.model';
+import { extractSqlFromArguments } from '../utils/mcp-response-parser';
 
 @Injectable({
   providedIn: 'root'
@@ -106,7 +107,10 @@ export class ChatService {
               goalAchieved: response.goalAchieved,
               conversationContextLoaded: response.conversationContextLoaded,
               executedSql: response.executedSql,
-              executionSteps: response.executionSteps
+              executionSteps: response.executionSteps?.map(step => ({
+                ...step,
+                sqlQuery: step.sqlQuery || extractSqlFromArguments(step.arguments)
+              }))
             };
             const assistantMessage: Message = {
               id: this.generateMessageId(),

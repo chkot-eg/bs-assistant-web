@@ -43,3 +43,6 @@ Thumbs.db
 .claude
 .vscode
 .vs
+INTEGRATION-GUIDE.md
+FRONTEND-API-CHANGELOG.md
+frontend-sse-sql-steps.md

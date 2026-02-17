@@ -622,6 +622,50 @@
                 .step-time { color: #6C757D; }
                 .step-rows { color: #007BFF; }
                 .step-reason { color: #6C757D; font-style: italic; width: 100%; }
+
+                .step-sql-section {
+                  width: 100%;
+                  margin-top: 4px;
+
+                  .step-sql-toggle {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 3px;
+                    background: none;
+                    border: none;
+                    padding: 2px 0;
+                    font-size: 10px;
+                    color: #007BFF;
+                    cursor: pointer;
+                    font-weight: 500;
+
+                    &:hover { text-decoration: underline; }
+
+                    mat-icon {
+                      font-size: 12px;
+                      width: 12px;
+                      height: 12px;
+                    }
+                  }
+
+                  .step-sql-code {
+                    background: #f5f5f5;
+                    border-radius: 6px;
+                    padding: 8px 10px;
+                    margin-top: 4px;
+                    overflow-x: auto;
+
+                    pre {
+                      margin: 0;
+                      font-family: 'Consolas', 'Monaco', monospace;
+                      font-size: 10px;
+                      line-height: 1.4;
+                      color: #333;
+                      white-space: pre-wrap;
+                      word-break: break-all;
+                    }
+                  }
+                }
               }
             }
           }
@@ -689,7 +733,7 @@
 
     .streaming-step {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       padding: 6px 0;
       font-size: 12px;
@@ -703,10 +747,105 @@
         width: 16px;
         height: 16px;
         color: #6C757D;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .step-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .step-execution-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .step-tool-badge {
+        font-weight: 600;
+        color: #333;
+        background: rgba(0, 123, 255, 0.08);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
+
+      .step-iteration {
+        font-size: 10px;
+        color: #6C757D;
+        font-weight: 500;
+      }
+
+      .step-time-badge {
+        font-size: 10px;
+        color: #6C757D;
+      }
+
+      .step-rows-badge {
+        font-size: 10px;
+        color: #007BFF;
+        font-weight: 500;
+      }
+
+      .step-error-msg {
+        color: #f44336;
+        font-size: 11px;
+        font-style: italic;
+      }
+
+      .step-sql-section {
+        margin-top: 2px;
+
+        .step-sql-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          background: none;
+          border: none;
+          padding: 2px 0;
+          font-size: 10px;
+          color: #007BFF;
+          cursor: pointer;
+          font-weight: 500;
+
+          &:hover { text-decoration: underline; }
+
+          mat-icon {
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+          }
+        }
+
+        .step-sql-code {
+          background: #f5f5f5;
+          border-radius: 6px;
+          padding: 8px 10px;
+          margin-top: 4px;
+          overflow-x: auto;
+
+          pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-all;
+          }
+        }
       }
 
       &.step-success .step-icon { color: #4CAF50; }
       &.step-error .step-icon { color: #f44336; }
+      &.step-execution {
+        border-left-color: rgba(0, 123, 255, 0.3);
+      }
       &.step-context {
         border-left-color: #4CAF50;
         .step-icon { color: #4CAF50; }
