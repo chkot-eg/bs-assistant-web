@@ -42,6 +42,12 @@ export interface QueryResponse {
   debugDetails?: string;
   adaptationFeedback?: string[];
   agentErrors?: string[];
+
+  // Chat limit warning fields
+  hasWarning?: boolean;
+  warningMessage?: string;
+  messageCount?: number;
+  isBlocked?: boolean;
 }
 
 export interface AgenticStep {
@@ -125,4 +131,15 @@ export interface CancelResponse {
   timestamp: number;
   status: 'CANCELLED' | 'NOT_FOUND' | 'ALREADY_COMPLETED' | 'ERROR';
   message: string;
+}
+
+// Chat limit exceeded error response
+export interface ChatLimitError {
+  maxLimit: number;
+  currentCount: number;
+  sessionId: string;
+  error: string;
+  message: string;
+  remaining: number;
+  timestamp: number;
 }

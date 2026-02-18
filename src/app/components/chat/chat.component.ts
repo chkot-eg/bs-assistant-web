@@ -38,13 +38,21 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isLoading$: Observable<boolean>;
   messageControl = new FormControl('', [Validators.required]);
 
+  // Chat limit warning (managed by backend)
+  hasWarning = false;
+  warningMessage = '';
+  messageCount = 0;
+  isBlocked = false;
+
   quickActions = [
     { label: 'Show Tables', prompt: 'Show me all tables in the database' },
     { label: 'Customer Info', prompt: 'Show customer information' },
     { label: 'Recent Orders', prompt: 'Show recent orders' },
   ];
 
-  constructor(private chatService: ChatService) {
+  constructor(
+    private chatService: ChatService
+  ) {
     this.messages$ = this.chatService.messages$;
     this.isLoading$ = this.chatService.isLoading$;
   }
@@ -58,16 +66,41 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   sendMessage(): void {
+    if (this.isBlocked) {
+      // Don't send if blocked by hard limit
+      return;
+    }
+
     if (this.messageControl.valid && this.messageControl.value) {
       const message = this.messageControl.value;
       this.messageControl.reset();
 
       this.chatService.sendMessage(message).subscribe({
-        next: () => {
-          // Message sent successfully
+        next: (response) => {
+          // Check for chat limit warnings from backend
+          if (response.hasWarning) {
+            this.hasWarning = true;
+            this.warningMessage = response.warningMessage || '';
+            this.messageCount = response.messageCount || 0;
+            this.isBlocked = response.isBlocked || false;
+          } else {
+            // Update message count even when no warning
+            if (response.messageCount !== undefined) {
+              this.messageCount = response.messageCount;
+            }
+          }
         },
         error: (error) => {
           console.error('Error:', error);
+
+          // Check if this is a chat limit exceeded error
+          const limitInfo = this.chatService.getChatLimitInfo(error.error || error);
+          if (limitInfo) {
+            this.hasWarning = limitInfo.hasWarning;
+            this.warningMessage = limitInfo.warningMessage;
+            this.messageCount = limitInfo.messageCount;
+            this.isBlocked = limitInfo.isBlocked;
+          }
         }
       });
     }
@@ -79,7 +112,52 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   clearChat(): void {
-    this.chatService.clearSession();
+    // Stop current request in chat service
+    this.chatService.stopCurrentRequest();
+
+    // Clear session on backend
+    this.chatService.clearSession().subscribe({
+      next: () => {
+        // Reset warning state when clearing chat
+        this.hasWarning = false;
+        this.warningMessage = '';
+        this.messageCount = 0;
+        this.isBlocked = false;
+      },
+      error: (error) => {
+        console.error('Error clearing chat:', error);
+
+        // Still reset warning state even on error
+        this.hasWarning = false;
+        this.warningMessage = '';
+        this.messageCount = 0;
+        this.isBlocked = false;
+      }
+    });
+  }
+
+  /**
+   * Dismiss the warning banner (but keep tracking the state)
+   */
+  dismissWarning(): void {
+    this.hasWarning = false;
+  }
+
+  /**
+   * Start a new conversation with fresh session
+   */
+  startNewConversation(): void {
+    // Stop current request in chat service
+    this.chatService.stopCurrentRequest();
+
+    // Reset chat limit warning state
+    this.hasWarning = false;
+    this.warningMessage = '';
+    this.messageCount = 0;
+    this.isBlocked = false;
+
+    // Start new session
+    this.chatService.startNewSession();
   }
 
   private scrollToBottom(): void {

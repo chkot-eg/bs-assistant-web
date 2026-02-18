@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, Subject } from 'rxjs';
 import { catchError, retry, tap, takeUntil } from 'rxjs/operators';
-import { Message, QueryRequest, QueryResponse, MessageMetadata, CancelResponse } from '../models/message.model';
+import { Message, QueryRequest, QueryResponse, MessageMetadata, CancelResponse, ChatLimitError } from '../models/message.model';
 import { ChatMessageDto } from '../models/session.model';
 import { environment } from '../../environments/environment';
 import { AgenticStreamService } from './agentic-stream.service';
@@ -333,5 +333,32 @@ export class ChatService {
 
   getCurrentSessionId(): string | null {
     return this.currentSessionId;
+  }
+
+  /**
+   * Check if an error response is a chat limit exceeded error
+   */
+  isChatLimitError(error: any): error is ChatLimitError {
+    return error &&
+           typeof error === 'object' &&
+           'maxLimit' in error &&
+           'currentCount' in error &&
+           'error' in error &&
+           error.error === 'Chat limit exceeded';
+  }
+
+  /**
+   * Get chat limit info from error if it's a limit error
+   */
+  getChatLimitInfo(error: any): { hasWarning: boolean; warningMessage: string; messageCount: number; isBlocked: boolean } | null {
+    if (this.isChatLimitError(error)) {
+      return {
+        hasWarning: true,
+        warningMessage: error.message,
+        messageCount: error.currentCount,
+        isBlocked: true
+      };
+    }
+    return null;
   }
 }
