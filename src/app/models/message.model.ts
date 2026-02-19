@@ -48,6 +48,7 @@ export interface AgenticStep {
   attemptNumber?: number;
   toolUsed?: string;
   arguments?: string;
+  sqlQuery?: string;
   result?: string;
   success?: boolean;
   reason?: string;
@@ -105,6 +106,13 @@ export interface StreamingStep {
   success?: boolean;
   timestamp: number;
   icon?: string;
+  sql?: string | null;
+  attemptNumber?: number;
+  toolUsed?: string;
+  rowCount?: number | null;
+  executionTimeMs?: number | null;
+  reason?: string | null;
+  errorMessage?: string | null;
 }
 
 // Legacy interface kept for backward compatibility

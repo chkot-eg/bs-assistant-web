@@ -156,16 +156,48 @@ function parseExecutionTrace(debugText: string): AgenticStep[] {
       success = val === '✓' || val === 'true';
     }
 
+    // Extract SQL query from the step block
+    const sqlMatch = block.match(/(?:SQL|Query|Generated SQL):\s*(.+?)(?=\n|$)/is);
+    let sqlQuery: string | undefined;
+    if (sqlMatch) {
+      sqlQuery = sqlMatch[1].trim();
+    } else {
+      // Fallback: try to extract from Arguments JSON
+      const argsMatch = block.match(/Arguments?:\s*(\{[\s\S]*?\})/i);
+      if (argsMatch) {
+        sqlQuery = extractSqlFromArguments(argsMatch[1]);
+      }
+    }
+
     steps.push({
       attemptNumber: parseInt(stepPositions[i].iter, 10),
       toolUsed: stepPositions[i].tool,
       success,
       executionTimeMs: timeMatch ? parseInt(timeMatch[1].replace(/,/g, ''), 10) : undefined,
-      rowCount: rowsMatch ? parseInt(rowsMatch[1], 10) : undefined
+      rowCount: rowsMatch ? parseInt(rowsMatch[1], 10) : undefined,
+      sqlQuery
     });
   }
 
   return steps;
+}
+
+/**
+ * Extract SQL from an AgenticStep's `arguments` field.
+ * Handles JSON objects (e.g. {"query": "SELECT ..."}) and raw SQL strings.
+ */
+export function extractSqlFromArguments(args: string | undefined): string | undefined {
+  if (!args) return undefined;
+  try {
+    const parsed = JSON.parse(args);
+    return parsed.query || parsed.sql || parsed.statement || undefined;
+  } catch {
+    const trimmed = args.trim();
+    if (/^(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP)\s/i.test(trimmed)) {
+      return trimmed;
+    }
+    return undefined;
+  }
 }
 
 function buildMarkdownTable(jsonData: any, recordCount: number | null): string {

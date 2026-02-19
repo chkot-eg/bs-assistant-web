@@ -13,6 +13,7 @@ import { ChatToggleService, ChatState, ChatSize } from '../../services/chat-togg
 import { ChatService } from '../../services/chat.service';
 import { Message, MessageMetadata, QueryResponse, StreamingStep } from '../../models/message.model';
 import { SseEvent } from '../../models/sse-events.model';
+import { extractSqlFromArguments } from '../../utils/mcp-response-parser';
 import { Observable, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -126,6 +127,8 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   // Metadata expand/collapse state
   private expandedSqlMessages = new Set<string>();
   private expandedStepsMessages = new Set<string>();
+  private expandedStepSqlEntries = new Set<string>();
+  private expandedStreamingSqlEntries = new Set<number>();
 
   // History panel state
   showHistory = false;
@@ -294,6 +297,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       // Reset streaming state
       this.isStreaming = true;
       this.streamingSteps = [];
+      this.expandedStreamingSqlEntries.clear();
       this.currentResponseUsesContext = false;
 
       // Try SSE streaming
@@ -348,13 +352,31 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
         break;
 
       case 'step':
-        this.streamingSteps.push({
-          type: 'step',
-          message: event.data.message,
-          success: event.data.success,
-          timestamp: event.data.timestamp,
-          icon: event.data.success ? 'check_circle' : 'error'
-        });
+        const stepData = event.data;
+        if (stepData.type === 'execution_step') {
+          this.streamingSteps.push({
+            type: 'execution_step',
+            message: stepData.reason || stepData.message || stepData.toolUsed || 'Executing...',
+            success: stepData.success,
+            timestamp: stepData.timestamp,
+            icon: stepData.success ? 'check_circle' : (stepData.success === false ? 'error' : 'hourglass_empty'),
+            sql: stepData.sql,
+            attemptNumber: stepData.attemptNumber,
+            toolUsed: stepData.toolUsed,
+            rowCount: stepData.rowCount,
+            executionTimeMs: stepData.executionTimeMs,
+            reason: stepData.reason,
+            errorMessage: stepData.errorMessage
+          });
+        } else {
+          this.streamingSteps.push({
+            type: 'step',
+            message: stepData.message,
+            success: stepData.success,
+            timestamp: stepData.timestamp,
+            icon: stepData.success ? 'check_circle' : 'error'
+          });
+        }
         this.scrollToBottom();
         break;
 
@@ -399,6 +421,66 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           const parsed = parseMcpResponseText(completeContent);
           completeContent = parsed.content;
           completeMetadata = { ...completeMetadata, ...parsed.metadata };
+
+          // Merge agenticMetadata for SQL data (it coexists alongside MCP result)
+          if (event.data.agenticMetadata) {
+            const meta = event.data.agenticMetadata;
+            if (meta.finalSql) {
+              completeMetadata.executedSql = meta.finalSql;
+            }
+            if (meta.executionSteps?.length) {
+              completeMetadata.executionSteps = meta.executionSteps.map((s: any) => ({
+                attemptNumber: s.attemptNumber,
+                toolUsed: s.toolUsed,
+                sqlQuery: s.sql,
+                success: s.success,
+                rowCount: s.rowCount,
+                executionTimeMs: s.executionTimeMs,
+                reason: s.reason,
+                errorMessage: s.errorMessage
+              }));
+            }
+            if (meta.totalExecutionTimeMs && !completeMetadata.executionTime) {
+              completeMetadata.executionTime = meta.totalExecutionTimeMs;
+            }
+            if (meta.goalAchieved !== undefined && completeMetadata.goalAchieved === undefined) {
+              completeMetadata.goalAchieved = meta.goalAchieved;
+            }
+            if (meta.iterationCount !== undefined && !completeMetadata.iterationCount) {
+              completeMetadata.iterationCount = meta.iterationCount;
+              completeMetadata.maxIterations = meta.maxIterations;
+            }
+            if (meta.agentStrategy && !completeMetadata.agentStrategy) {
+              completeMetadata.agentStrategy = meta.agentStrategy;
+            }
+            if (!completeMetadata.executionPath) {
+              completeMetadata.executionPath = 'AGENTIC';
+            }
+          }
+        } else if (rawResult && typeof rawResult === 'object' && event.data.agenticMetadata) {
+          // SSE complete with agenticMetadata
+          const meta = event.data.agenticMetadata;
+          completeContent = meta.formattedResponse || String(rawResult);
+          completeMetadata = {
+            executionTime: meta.totalExecutionTimeMs,
+            executionPath: 'AGENTIC',
+            agentStrategy: meta.agentStrategy,
+            iterationCount: meta.iterationCount,
+            maxIterations: meta.maxIterations,
+            goalAchieved: meta.goalAchieved,
+            conversationContextLoaded: this.currentResponseUsesContext,
+            executedSql: meta.finalSql,
+            executionSteps: meta.executionSteps?.map((s: any) => ({
+              attemptNumber: s.attemptNumber,
+              toolUsed: s.toolUsed,
+              sqlQuery: s.sql,
+              success: s.success,
+              rowCount: s.rowCount,
+              executionTimeMs: s.executionTimeMs,
+              reason: s.reason,
+              errorMessage: s.errorMessage
+            }))
+          };
         } else if (rawResult && typeof rawResult === 'object' && 'success' in rawResult) {
           // Direct QueryResponse format (fallback)
           const qr = rawResult as QueryResponse;
@@ -413,10 +495,23 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
             goalAchieved: qr.goalAchieved,
             conversationContextLoaded: this.currentResponseUsesContext,
             executedSql: qr.executedSql,
-            executionSteps: qr.executionSteps
+            executionSteps: qr.executionSteps?.map(step => ({
+              ...step,
+              sqlQuery: step.sqlQuery || extractSqlFromArguments(step.arguments)
+            }))
           };
         } else {
           completeContent = String(rawResult || 'No response received.');
+        }
+
+        // Fallback: derive executedSql from last successful step if not set
+        if (!completeMetadata.executedSql && completeMetadata.executionSteps?.length) {
+          const lastSuccess = [...completeMetadata.executionSteps]
+            .reverse()
+            .find(s => s.success && s.sqlQuery);
+          if (lastSuccess) {
+            completeMetadata.executedSql = lastSuccess.sqlQuery;
+          }
         }
 
         this.chatService.addStreamingResult(completeContent, completeMetadata, completeQueryResponse);
@@ -691,6 +786,31 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   isStepsExpanded(messageId: string): boolean {
     return this.expandedStepsMessages.has(messageId);
+  }
+
+  toggleStepSqlExpanded(messageId: string, stepIndex: number): void {
+    const key = `${messageId}_step_${stepIndex}`;
+    if (this.expandedStepSqlEntries.has(key)) {
+      this.expandedStepSqlEntries.delete(key);
+    } else {
+      this.expandedStepSqlEntries.add(key);
+    }
+  }
+
+  isStepSqlExpanded(messageId: string, stepIndex: number): boolean {
+    return this.expandedStepSqlEntries.has(`${messageId}_step_${stepIndex}`);
+  }
+
+  toggleStreamingSqlExpanded(stepIndex: number): void {
+    if (this.expandedStreamingSqlEntries.has(stepIndex)) {
+      this.expandedStreamingSqlEntries.delete(stepIndex);
+    } else {
+      this.expandedStreamingSqlEntries.add(stepIndex);
+    }
+  }
+
+  isStreamingSqlExpanded(stepIndex: number): boolean {
+    return this.expandedStreamingSqlEntries.has(stepIndex);
   }
 
   // --- Document Upload ---
