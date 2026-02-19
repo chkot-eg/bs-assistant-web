@@ -7,6 +7,36 @@
         <p>Natural Language Query Interface</p>
       </div>
 
+      <!-- Chat Limit Warning Banners -->
+      @if (hasWarning && !isBlocked) {
+        <div class="warning-banner warning">
+          <div class="warning-content">
+            <mat-icon>warning</mat-icon>
+            <div class="warning-text">
+              <strong>Advarsel:</strong> {{ warningMessage }}
+              <span class="message-counter">({{ messageCount }} meldinger)</span>
+            </div>
+          </div>
+          <button mat-icon-button (click)="dismissWarning()" class="dismiss-btn">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
+      @if (isBlocked) {
+        <div class="warning-banner error">
+          <div class="warning-content">
+            <mat-icon>block</mat-icon>
+            <div class="warning-text">
+              <strong>Blokkert:</strong> {{ warningMessage }}
+              <button mat-flat-button color="primary" (click)="startNewConversation()" class="new-session-btn">
+                Start ny samtale
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Messages Container -->
       <div class="messages-container" #scrollContainer>
         @if ((messages$ | async)?.length === 0) {

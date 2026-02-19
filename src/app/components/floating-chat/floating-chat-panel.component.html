@@ -78,6 +78,36 @@
   </div>
 
   @if (!showHistory) {
+  <!-- Chat Limit Warning Banners -->
+  @if (hasWarning && !isBlocked) {
+    <div class="warning-banner warning" [@slideDown]>
+      <div class="warning-content">
+        <mat-icon>warning</mat-icon>
+        <div class="warning-text">
+          <strong>Warning:</strong> {{ warningMessage }}
+          <span class="message-counter">({{ messageCount }} messages)</span>
+        </div>
+      </div>
+      <button mat-icon-button (click)="dismissWarning()" class="dismiss-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (isBlocked) {
+    <div class="warning-banner error" [@slideDown]>
+      <div class="warning-content">
+        <mat-icon>block</mat-icon>
+        <div class="warning-text">
+         {{ warningMessage }}
+          <button mat-flat-button color="primary" (click)="startNewConversation()" class="new-session-btn">
+            Start new conversation
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Messages Container -->
   <div class="messages-container" #scrollContainer (scroll)="onScroll($event)">
     @if ((messages$ | async)?.length === 0) {
@@ -488,7 +518,8 @@
                   (keydown)="onKeyDown($event)"
                   (input)="adjustTextareaHeight()"
                   (focus)="onTextareaFocus()"
-                  [readonly]="!!(isLoading$ | async)"
+                  [readonly]="!!(isLoading$ | async) || isBlocked"
+                  [disabled]="isBlocked"
                   placeholder="Type your message here..."
                   autocomplete="off"
                   autocorrect="off"
@@ -509,7 +540,7 @@
                 color="primary"
                 class="send-btn"
                 (click)="sendMessage()"
-                [disabled]="messageControl.invalid"
+                [disabled]="messageControl.invalid || isBlocked"
                 [matTooltip]="getSendButtonTooltip()">
           <mat-icon>send</mat-icon>
         </button>

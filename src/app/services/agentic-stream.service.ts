@@ -45,6 +45,7 @@ export class AgenticStreamService {
       eventSource.addEventListener('step', handleEvent('step'));
       eventSource.addEventListener('context', handleEvent('context'));
       eventSource.addEventListener('complete', handleEvent('complete'));
+      eventSource.addEventListener('limit', handleEvent('limit'));
 
       eventSource.addEventListener('error', (event: Event) => {
         this.ngZone.run(() => {

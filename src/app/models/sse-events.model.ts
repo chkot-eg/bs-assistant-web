@@ -1,4 +1,4 @@
-export type SseEventType = 'init' | 'progress' | 'step' | 'context' | 'complete' | 'error';
+export type SseEventType = 'init' | 'progress' | 'step' | 'context' | 'complete' | 'error' | 'limit';
 
 export interface SseEvent {
   event: SseEventType;
@@ -62,5 +62,15 @@ export interface SseAgenticMetadata {
 export interface SseErrorData {
   error: string;
   type?: string;
+  timestamp: number;
+}
+
+export interface SseLimitData {
+  maxLimit: number;
+  currentCount: number;
+  sessionId: string;
+  error: string;
+  message: string;
+  remaining: number;
   timestamp: number;
 }

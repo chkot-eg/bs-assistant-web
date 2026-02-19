@@ -120,6 +120,12 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   currentResponseUsesContext = false;
   private streamSubscription: Subscription | null = null;
 
+  // Chat limit warning (managed by backend)
+  hasWarning = false;
+  warningMessage = '';
+  messageCount = 0;
+  isBlocked = false;
+
   // File upload state
   isUploading = false;
   uploadProgress = 0;
@@ -279,6 +285,11 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   sendMessage(): void {
+    if (this.isBlocked) {
+      // Don't send if blocked by hard limit
+      return;
+    }
+
     if (this.messageControl.valid && this.messageControl.value?.trim()) {
       const message = this.messageControl.value.trim();
       const inputElement = this.messageInput?.nativeElement;
@@ -389,6 +400,29 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           icon: 'hourglass_empty'
         });
         this.scrollToBottom();
+        break;
+
+      case 'limit':
+        // Chat limit exceeded - stop streaming and show blocked UI
+        this.isStreaming = false;
+        this.streamingSteps = [];
+        this.hasWarning = true;
+        this.warningMessage = event.data.message;
+        this.messageCount = event.data.currentCount;
+        this.isBlocked = true;
+
+        // Add an error message to the chat
+        const limitErrorMessage = {
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          role: 'assistant' as const,
+          content: event.data.message,
+          timestamp: new Date(),
+          isError: true
+        };
+        this.chatService.addSystemMessage(limitErrorMessage.content, 'text');
+
+        this.scrollToBottom();
+        if (inputElement) { inputElement.focus(); }
         break;
 
       case 'complete':
@@ -524,18 +558,40 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   private handleSseError(error: any, originalMessage: string, inputElement?: HTMLElement): void {
-    console.warn('SSE streaming failed, falling back to POST:', error);
+    console.warn('SSE streaming failed:', error);
     this.isStreaming = false;
     this.streamingSteps = [];
 
-    // Fallback to POST-based flow
+    // NOTE: Chat limit errors come as event:limit (handled in handleSseEvent),
+    // not as SSE error events. Fallback to POST for connection errors.
+
+    // Fallback to POST-based flow for other errors
     this.chatService.sendMessage(originalMessage, this.useContext).subscribe({
-      next: () => {
+      next: (response) => {
+        // Check for chat limit warnings in POST response
+        if (response.hasWarning) {
+          this.hasWarning = true;
+          this.warningMessage = response.warningMessage || '';
+          this.messageCount = response.messageCount || 0;
+          this.isBlocked = response.isBlocked || false;
+        } else if (response.messageCount !== undefined) {
+          this.messageCount = response.messageCount;
+        }
         this.scrollToBottom();
         if (inputElement) { inputElement.focus(); }
       },
       error: (err) => {
         console.error('POST fallback also failed:', err);
+
+        // Check POST error for chat limit
+        const postLimitInfo = this.chatService.getChatLimitInfo(err.error || err);
+        if (postLimitInfo) {
+          this.hasWarning = postLimitInfo.hasWarning;
+          this.warningMessage = postLimitInfo.warningMessage;
+          this.messageCount = postLimitInfo.messageCount;
+          this.isBlocked = postLimitInfo.isBlocked;
+        }
+
         this.scrollToBottom();
         if (inputElement) { inputElement.focus(); }
       }
@@ -870,11 +926,53 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   clearChat(): void {
     if (confirm('Are you sure you want to clear the chat history?')) {
-      this.chatService.clearMessages();
-      // Hide contact support button when chat is cleared
-      this.showContactSupport = false;
-      this.contactDetailsExpanded = false;
+      // Stop any ongoing streaming request
+      if (this.streamSubscription) {
+        this.streamSubscription.unsubscribe();
+        this.streamSubscription = null;
+      }
+      this.isStreaming = false;
+      this.streamingSteps = [];
+
+      // Stop current request in chat service
+      this.chatService.stopCurrentRequest();
+
+      // Clear session on backend
+      this.chatService.clearSession().subscribe({
+        next: () => {
+          // Reset warning state when clearing chat
+          this.hasWarning = false;
+          this.warningMessage = '';
+          this.messageCount = 0;
+          this.isBlocked = false;
+
+          // Hide contact support button when chat is cleared
+          this.showContactSupport = false;
+          this.contactDetailsExpanded = false;
+        },
+        error: (error) => {
+          console.error('Error clearing chat:', error);
+          // Fallback: just clear messages locally if API fails
+          this.chatService.clearMessages();
+
+          // Still reset warning state even on error
+          this.hasWarning = false;
+          this.warningMessage = '';
+          this.messageCount = 0;
+          this.isBlocked = false;
+
+          this.showContactSupport = false;
+          this.contactDetailsExpanded = false;
+        }
+      });
     }
+  }
+
+  /**
+   * Dismiss the warning banner (but keep tracking the state)
+   */
+  dismissWarning(): void {
+    this.hasWarning = false;
   }
 
   exportChat(): void {
@@ -938,7 +1036,27 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   startNewConversation(): void {
+    // Stop any ongoing streaming request
+    if (this.streamSubscription) {
+      this.streamSubscription.unsubscribe();
+      this.streamSubscription = null;
+    }
+    this.isStreaming = false;
+    this.streamingSteps = [];
+
+    // Stop current request in chat service
+    this.chatService.stopCurrentRequest();
+
+    // Reset chat limit warning state
+    this.hasWarning = false;
+    this.warningMessage = '';
+    this.messageCount = 0;
+    this.isBlocked = false;
+
+    // Start new session
     this.chatService.startNewSession();
+
+    // Reset UI state
     this.showHistory = false;
     this.showContactSupport = false;
     this.contactDetailsExpanded = false;
