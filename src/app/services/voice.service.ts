@@ -9,6 +9,7 @@ export interface VoiceState {
   interimTranscript: string; // Added for showing real-time text
   language: string;
   error: string | null;
+  commandDetected?: 'SEND' | null; // Voice command detected
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -71,6 +72,8 @@ export class VoiceService {
 
   // Store final results separately to avoid duplication
   private finalTranscript = '';
+  // Persists transcript across stop/resume cycles; cleared only on send or clearTranscript()
+  private savedTranscript = '';
 
   private voiceState = new BehaviorSubject<VoiceState>({
     isRecording: false,
@@ -78,7 +81,8 @@ export class VoiceService {
     transcript: '',
     interimTranscript: '',
     language: 'en-US',
-    error: null
+    error: null,
+    commandDetected: null
   });
 
   voiceState$ = this.voiceState.asObservable();
@@ -131,12 +135,12 @@ export class VoiceService {
     this.recognition.onstart = () => {
       console.log('Recognition started');
       this.isListening = true;
-      this.finalTranscript = ''; // Reset on new recording
+      this.finalTranscript = ''; // Reset only the current session's transcript
       this.updateState({
         isRecording: true,
         error: null,
         isProcessing: false,
-        transcript: '',
+        // Keep transcript (savedTranscript) so the user sees prior text during recording
         interimTranscript: ''
       });
     };
@@ -163,13 +167,35 @@ export class VoiceService {
         }
       }
 
+      // Build full transcript: saved text from previous sessions + current session
+      const fullTranscript = this.savedTranscript
+        ? (this.savedTranscript + ' ' + this.finalTranscript).trim()
+        : this.finalTranscript.trim();
+
+      // Detect voice commands in the combined transcript
+      const command = this.detectCommand(fullTranscript);
+      let cleanedTranscript = fullTranscript;
+
+      console.log('[VOICE] Full transcript (saved + current):', fullTranscript);
+      console.log('[VOICE] Command detected:', command);
+
+      if (command) {
+        // Remove the command word from transcript
+        console.log('[VOICE] Before removing command:', cleanedTranscript);
+        cleanedTranscript = this.removeCommand(fullTranscript);
+        console.log('[VOICE] After removing command:', cleanedTranscript);
+      }
+
       // Update state - show final + interim combined for display
       // But only store final in the actual transcript
       this.updateState({
-        transcript: this.finalTranscript.trim(),
+        transcript: cleanedTranscript,
         interimTranscript: interimTranscript,
-        isProcessing: interimTranscript.length > 0
+        isProcessing: interimTranscript.length > 0,
+        commandDetected: command
       });
+
+      console.log('[VOICE] State updated - commandDetected:', command, 'transcript:', cleanedTranscript);
     };
 
     this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -206,12 +232,20 @@ export class VoiceService {
       console.log('Recognition ended');
       this.isListening = false;
 
-      // Clear interim transcript and finalize
+      // Save the transcript here — onend fires AFTER all onresult final calls,
+      // so this captures the fully-finalized text (including last-second words).
+      // Only save when transcript is non-empty: an empty transcript means
+      // clearTranscript() already ran (e.g. after a send), so we don't overwrite.
+      const finalizedTranscript = this.voiceState.value.transcript;
+      if (finalizedTranscript) {
+        this.savedTranscript = finalizedTranscript;
+      }
+
       this.updateState({
         isRecording: false,
         isProcessing: false,
         interimTranscript: '',
-        // Keep the final transcript as is
+        commandDetected: null
       });
     };
   }
@@ -236,10 +270,9 @@ export class VoiceService {
       this.recognition.interimResults = true;  // Show real-time results
       this.recognition.maxAlternatives = 1;
 
-      // Reset state
+      // Reset only the current session; keep savedTranscript for resume
       this.finalTranscript = '';
       this.updateState({
-        transcript: '',
         interimTranscript: '',
         error: null,
         language
@@ -307,11 +340,45 @@ export class VoiceService {
 
   clearTranscript(): void {
     this.finalTranscript = '';
+    this.savedTranscript = ''; // Also clear saved so next recording starts fresh
     this.updateState({
       transcript: '',
       interimTranscript: '',
-      error: null
+      error: null,
+      commandDetected: null
     });
+  }
+
+  /**
+   * Detect voice commands in transcript
+   * Commands: ask Fabrioo (sends message)
+   */
+  private detectCommand(transcript: string): 'SEND' | null {
+    // Remove punctuation and extra spaces, then convert to uppercase
+    const text = transcript.trim().replace(/[.,!?;:]+$/, '').trim().toUpperCase();
+
+    console.log('[DETECT] Checking text for commands:', text);
+
+    // Check if transcript ends with "ask Fabrioo" or "Fabrioo"
+    if (/\b(ASK\s+)?FABRIOO?$/i.test(text) || /\b(ASK\s+)?FABRIO$/i.test(text)) {
+      console.log('[DETECT] Matched ask Fabrioo command');
+      return 'SEND';
+    }
+
+    console.log('[DETECT] No command matched');
+    return null;
+  }
+
+  /**
+   * Remove command word from transcript
+   */
+  private removeCommand(transcript: string): string {
+    // Strip trailing punctuation first (same normalization as detectCommand)
+    const normalized = transcript.trim().replace(/[.,!?;:]+$/, '').trim();
+
+    const result = normalized.replace(/\s*\b(ask\s+)?(fabrioo?|fabrio)\s*$/i, '').trim();
+    console.log('[REMOVE] Input:', transcript, '-> Normalized:', normalized, '-> Output:', result);
+    return result;
   }
 
   getSupportedLanguages(): { [key: string]: string } {
