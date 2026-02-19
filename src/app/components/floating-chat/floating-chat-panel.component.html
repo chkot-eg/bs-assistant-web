@@ -435,7 +435,10 @@
     @if ((voiceState$ | async)?.isRecording) {
        <div class="voice-status-message recording">
         <div class="recording-indicator"></div>
-        <span>Listening... Speak now</span>
+        <div class="recording-content">
+          <span class="recording-title">Listening... Speak now</span>
+          <span class="voice-commands">Say "ask Fabrioo" to send</span>
+        </div>
       </div>
     }
 

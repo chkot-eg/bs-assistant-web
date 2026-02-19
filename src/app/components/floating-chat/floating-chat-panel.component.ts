@@ -23,7 +23,7 @@ import { DocumentService } from '../../services/document.service';
 import { SessionService } from '../../services/session.service';
 import { Session } from '../../models/session.model';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, filter } from 'rxjs/operators';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
@@ -191,11 +191,45 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
         }
       }
     });
-    this.voiceState$.pipe(takeUntil(this.destroy$)).subscribe(voiceState => {
+    // Track previous command to avoid duplicate execution
+    let lastCommand: string | null = null;
+
+    this.voiceState$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(voiceState => {
       this.currentVoiceState = voiceState;
-      if (voiceState.transcript && !voiceState.isRecording) {
+
+      console.log('[COMPONENT] Voice state:', {
+        isRecording: voiceState.isRecording,
+        commandDetected: voiceState.commandDetected,
+        transcript: voiceState.transcript,
+        lastCommand
+      });
+
+      // Handle voice commands - only when command is newly detected
+      if (voiceState.commandDetected && voiceState.commandDetected !== lastCommand) {
+        console.log('[COMPONENT] NEW command detected, executing:', voiceState.commandDetected);
+        lastCommand = voiceState.commandDetected;
+        this.handleVoiceCommand(voiceState.commandDetected, voiceState.transcript);
+      } else if (!voiceState.commandDetected && lastCommand) {
+        // Command was cleared, reset tracking
+        console.log('[COMPONENT] Command cleared, resetting');
+        lastCommand = null;
+      } else if (voiceState.transcript && !voiceState.isRecording && !voiceState.commandDetected) {
+        // Auto-fill textarea when recording stops (no command)
+        console.log('[COMPONENT] Recording stopped, filling textarea');
         this.messageControl.setValue(voiceState.transcript, { emitEvent: false });
         this.adjustTextareaHeight();
+      }
+    });
+
+    // When the user manually clears the textarea, reset the voice transcript so that
+    // the next recording session starts fresh (no stale saved text gets restored).
+    this.messageControl.valueChanges.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(value => {
+      if (!value || !value.trim()) {
+        this.voiceService.clearTranscript();
       }
     });
 
@@ -1186,6 +1220,29 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   clearVoiceError(): void {
     this.voiceService.clearTranscript();
+  }
+
+  /**
+   * Handle voice commands (SEND)
+   */
+  private handleVoiceCommand(command: 'SEND', transcript: string): void {
+    console.log('[HANDLER] Executing voice command:', command, 'Transcript:', transcript);
+
+    // Stop recording first
+    this.voiceService.stopRecording();
+
+    // Fill the textarea with the transcript (without the command phrase)
+    this.messageControl.setValue(transcript, { emitEvent: false });
+    this.adjustTextareaHeight();
+
+    // Send the message automatically
+    setTimeout(() => {
+      if (transcript.trim()) {
+        this.sendMessage();
+      }
+    }, 100);
+
+    console.log('[HANDLER] Command execution completed');
   }
 
   renderMarkdown(content: string): SafeHtml {
