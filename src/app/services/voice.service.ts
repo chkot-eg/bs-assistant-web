@@ -359,9 +359,9 @@ export class VoiceService {
 
     console.log('[DETECT] Checking text for commands:', text);
 
-    // Check if transcript ends with "ask Fabrioo" or "Fabrioo"
-    if (/\b(ASK\s+)?FABRIOO?$/i.test(text) || /\b(ASK\s+)?FABRIO$/i.test(text)) {
-      console.log('[DETECT] Matched ask Fabrioo command');
+    // Check if transcript ends with "ask <anything starting with fab>"
+    if (/\bASK\s+FAB\w*$/i.test(text)) {
+      console.log('[DETECT] Matched ask Fab* command');
       return 'SEND';
     }
 
@@ -376,7 +376,7 @@ export class VoiceService {
     // Strip trailing punctuation first (same normalization as detectCommand)
     const normalized = transcript.trim().replace(/[.,!?;:]+$/, '').trim();
 
-    const result = normalized.replace(/\s*\b(ask\s+)?(fabrioo?|fabrio)\s*$/i, '').trim();
+    const result = normalized.replace(/\s*\bask\s+fab\w*\s*$/i, '').trim();
     console.log('[REMOVE] Input:', transcript, '-> Normalized:', normalized, '-> Output:', result);
     return result;
   }
