@@ -296,8 +296,29 @@
             </div>
           }
 
-          <div class="message-time">
-            {{ message.timestamp | date:'HH:mm' }}
+          <div class="message-footer">
+            <span class="message-time-text">{{ message.timestamp | date:'HH:mm' }}</span>
+
+            @if (message.role === 'assistant' && !message.isError && isTtsSupported()) {
+              <button mat-icon-button
+                      class="tts-btn"
+                      (click)="toggleTts(message)"
+                      [matTooltip]="(ttsState$ | async)?.currentMessageId === message.id
+                        ? ((ttsState$ | async)?.isPlaying ? 'Stop speaking' : 'Preparing...')
+                        : 'Read aloud'"
+                      [disabled]="(ttsState$ | async)?.isSynthesizing
+                                  && (ttsState$ | async)?.currentMessageId === message.id">
+                @if ((ttsState$ | async)?.isSynthesizing
+                     && (ttsState$ | async)?.currentMessageId === message.id) {
+                  <mat-icon class="tts-loading">hourglass_empty</mat-icon>
+                } @else if ((ttsState$ | async)?.isPlaying
+                            && (ttsState$ | async)?.currentMessageId === message.id) {
+                  <mat-icon class="tts-active">stop_circle</mat-icon>
+                } @else {
+                  <mat-icon>volume_up</mat-icon>
+                }
+              </button>
+            }
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ export interface VoiceState {
   language: string;
   error: string | null;
   commandDetected?: 'SEND' | null; // Voice command detected
+  lastInputWasVoice?: boolean; // Track if last input was voice
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -74,6 +75,8 @@ export class VoiceService {
   private finalTranscript = '';
   // Persists transcript across stop/resume cycles; cleared only on send or clearTranscript()
   private savedTranscript = '';
+  // Track whether last message was sent via voice command
+  private _lastInputWasVoice = false;
 
   private voiceState = new BehaviorSubject<VoiceState>({
     isRecording: false,
@@ -383,6 +386,24 @@ export class VoiceService {
 
   getSupportedLanguages(): { [key: string]: string } {
     return this.supportedLanguages;
+  }
+
+  /**
+   * Mark that a voice command triggered the send.
+   * Called from the component before sendMessage().
+   */
+  markVoiceSend(): void {
+    this._lastInputWasVoice = true;
+  }
+
+  /**
+   * Check and consume the voice-send flag.
+   * Returns true once after markVoiceSend(), then resets.
+   */
+  consumeVoiceSendFlag(): boolean {
+    const was = this._lastInputWasVoice;
+    this._lastInputWasVoice = false;
+    return was;
   }
 
   private updateState(partial: Partial<VoiceState>): void {
