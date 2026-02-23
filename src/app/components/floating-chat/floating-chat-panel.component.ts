@@ -120,6 +120,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   isStreaming = false;
   streamingSteps: StreamingStep[] = [];
   currentResponseUsesContext = false;
+  pendingSynthesizedAnswer: string | null = null;
   private streamSubscription: Subscription | null = null;
 
   // Chat limit warning (managed by backend)
@@ -135,6 +136,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   // Metadata expand/collapse state
   private expandedSqlMessages = new Set<string>();
   private expandedStepsMessages = new Set<string>();
+  private expandedRawDataMessages = new Set<string>();
   private expandedStepSqlEntries = new Set<string>();
   private expandedStreamingSqlEntries = new Set<number>();
 
@@ -348,6 +350,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       this.streamingSteps = [];
       this.expandedStreamingSqlEntries.clear();
       this.currentResponseUsesContext = false;
+      this.pendingSynthesizedAnswer = null;
 
       // Try SSE streaming
       this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext)
@@ -438,6 +441,10 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           icon: 'hourglass_empty'
         });
         this.scrollToBottom();
+        break;
+
+      case 'synthesis':
+        this.pendingSynthesizedAnswer = event.data.answer;
         break;
 
       case 'limit':
@@ -585,6 +592,17 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
             completeMetadata.executedSql = lastSuccess.sqlQuery;
           }
         }
+
+        // Resolve synthesized answer: prefer synthesis SSE event, fallback to agenticMetadata
+        const synthesized = this.pendingSynthesizedAnswer
+          || event.data.agenticMetadata?.synthesizedAnswer
+          || null;
+        if (synthesized) {
+          completeMetadata.synthesizedAnswer = synthesized;
+          completeMetadata.rawDataContent = completeContent;
+          completeContent = synthesized;
+        }
+        this.pendingSynthesizedAnswer = null;
 
         this.chatService.addStreamingResult(completeContent, completeMetadata, completeQueryResponse);
         this.isStreaming = false;
@@ -880,6 +898,18 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   isStepsExpanded(messageId: string): boolean {
     return this.expandedStepsMessages.has(messageId);
+  }
+
+  toggleRawDataExpanded(messageId: string): void {
+    if (this.expandedRawDataMessages.has(messageId)) {
+      this.expandedRawDataMessages.delete(messageId);
+    } else {
+      this.expandedRawDataMessages.add(messageId);
+    }
+  }
+
+  isRawDataExpanded(messageId: string): boolean {
+    return this.expandedRawDataMessages.has(messageId);
   }
 
   getTokenEstimate(messageId: string): TokenEstimate | null {

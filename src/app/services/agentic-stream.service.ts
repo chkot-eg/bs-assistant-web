@@ -44,6 +44,7 @@ export class AgenticStreamService {
       eventSource.addEventListener('progress', handleEvent('progress'));
       eventSource.addEventListener('step', handleEvent('step'));
       eventSource.addEventListener('context', handleEvent('context'));
+      eventSource.addEventListener('synthesis', handleEvent('synthesis'));
       eventSource.addEventListener('complete', handleEvent('complete'));
       eventSource.addEventListener('limit', handleEvent('limit'));
 

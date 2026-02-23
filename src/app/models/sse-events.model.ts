@@ -1,4 +1,4 @@
-export type SseEventType = 'init' | 'progress' | 'step' | 'context' | 'complete' | 'error' | 'limit';
+export type SseEventType = 'init' | 'progress' | 'step' | 'context' | 'synthesis' | 'complete' | 'error' | 'limit';
 
 export interface SseEvent {
   event: SseEventType;
@@ -46,8 +46,14 @@ export interface SseCompleteData {
   timestamp: number;
 }
 
+export interface SseSynthesisData {
+  answer: string;
+  timestamp: number;
+}
+
 export interface SseAgenticMetadata {
   formattedResponse?: string;
+  synthesizedAnswer?: string;
   goalAchieved?: boolean;
   iterationCount?: number;
   maxIterations?: number;

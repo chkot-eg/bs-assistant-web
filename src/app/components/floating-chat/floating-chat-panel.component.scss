@@ -621,8 +621,19 @@
           }
 
           .metadata-sql-section,
-          .metadata-steps-section {
+          .metadata-steps-section,
+          .metadata-raw-data-section {
             margin-top: 6px;
+          }
+
+          .raw-data-block {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 6px;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+            font-size: 13px;
           }
 
           .metadata-toggle {

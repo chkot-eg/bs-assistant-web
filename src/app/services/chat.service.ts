@@ -110,7 +110,11 @@ export class ChatService {
               executionSteps: response.executionSteps?.map(step => ({
                 ...step,
                 sqlQuery: step.sqlQuery || extractSqlFromArguments(step.arguments)
-              }))
+              })),
+              synthesizedAnswer: response.synthesizedAnswer,
+              rawDataContent: response.synthesizedAnswer
+                ? this.formatRawDataContent(response)
+                : undefined
             };
             const assistantMessage: Message = {
               id: this.generateMessageId(),
@@ -148,6 +152,11 @@ export class ChatService {
       return `Error: ${response.error}`;
     }
 
+    // If synthesizedAnswer is available, use it as the primary content
+    if (response.synthesizedAnswer) {
+      return response.synthesizedAnswer;
+    }
+
     // If data is a string (already formatted by the agentic service), use as-is
     if (typeof response.data === 'string') {
       return response.data;
@@ -182,6 +191,30 @@ export class ChatService {
     }
 
     return parts.join('\n');
+  }
+
+  private formatRawDataContent(response: QueryResponse): string | undefined {
+    // Build raw data content (skipping synthesizedAnswer) for the collapsible section
+    if (typeof response.data === 'string') {
+      return response.data;
+    }
+    const parts: string[] = [];
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      parts.push(`Found ${response.rowCount ?? response.data.length} results.`);
+      const preview = response.data.slice(0, 5);
+      const headers = response.columns ?? Object.keys(preview[0]);
+      parts.push('\n| ' + headers.join(' | ') + ' |');
+      parts.push('| ' + headers.map(() => '---').join(' | ') + ' |');
+      for (const row of preview) {
+        parts.push('| ' + headers.map(h => String(row[h] ?? '')).join(' | ') + ' |');
+      }
+      if (response.data.length > 5) {
+        parts.push(`\n... and ${response.data.length - 5} more rows.`);
+      }
+    } else if (response.data) {
+      parts.push(JSON.stringify(response.data, null, 2));
+    }
+    return parts.length > 0 ? parts.join('\n') : undefined;
   }
 
   stopCurrentRequest(): void {
