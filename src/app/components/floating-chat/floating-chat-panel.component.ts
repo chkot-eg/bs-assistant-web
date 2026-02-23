@@ -30,6 +30,8 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { parseMcpResponseText } from '../../utils/mcp-response-parser';
+import { TokenTrackingService } from '../../services/token-tracking.service';
+import { TokenEstimate } from '../../models/token-usage.model';
 
 @Component({
   selector: 'app-floating-chat-panel',
@@ -164,7 +166,8 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private documentService: DocumentService,
     private sessionService: SessionService,
     private sanitizer: DomSanitizer,
-    private featureTourService: FeatureTourService
+    private featureTourService: FeatureTourService,
+    private tokenTrackingService: TokenTrackingService
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -877,6 +880,14 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   isStepsExpanded(messageId: string): boolean {
     return this.expandedStepsMessages.has(messageId);
+  }
+
+  getTokenEstimate(messageId: string): TokenEstimate | null {
+    return this.tokenTrackingService.getEstimateForMessage(messageId);
+  }
+
+  formatTokenCost(cost: number): string {
+    return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
   }
 
   toggleStepSqlExpanded(messageId: string, stepIndex: number): void {
