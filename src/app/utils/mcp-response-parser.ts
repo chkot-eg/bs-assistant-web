@@ -236,7 +236,7 @@ function buildMarkdownTable(jsonData: any, recordCount: number | null): string {
     }).join(' | ') + ' |'
   );
 
-  const parts = [`**${count} records found**`, '', header, separator, ...dataLines];
+  const parts = ['', header, separator, ...dataLines];
 
   if (rows.length > maxDisplay) {
     parts.push('', `*... and ${rows.length - maxDisplay} more rows.*`);

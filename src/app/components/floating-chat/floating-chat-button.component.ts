@@ -53,14 +53,25 @@ import { Observable } from 'rxjs';
       }
     }
 
-    @keyframes pulse {
+    @keyframes float {
       0%, 100% {
-        transform: scale(1);
+        transform: translateY(0);
         box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
       }
       50% {
-        transform: scale(1.02);
-        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.6);
+        transform: translateY(-8px);
+        box-shadow: 0 14px 28px rgba(33, 150, 243, 0.3);
+      }
+    }
+
+    @keyframes float-hover {
+      0%, 100% {
+        transform: translateY(0) scale(1.08);
+        box-shadow: 0 10px 25px rgba(33, 150, 243, 0.5);
+      }
+      50% {
+        transform: translateY(-6px) scale(1.08);
+        box-shadow: 0 16px 32px rgba(33, 150, 243, 0.35);
       }
     }
 
