@@ -31,18 +31,18 @@ import { Observable } from 'rxjs';
       background: linear-gradient(135deg, #2196F3, #1976D2) !important;
       box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      animation: pulse 3s ease-in-out infinite;
+      animation: float 3s ease-in-out infinite;
 
       &:hover {
-        transform: scale(1.08);
-        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
-        animation-play-state: paused;
+        animation: float-hover 1.5s ease-in-out infinite;
+        box-shadow: 0 12px 30px rgba(33, 150, 243, 0.55);
       }
 
       &.hidden {
-        transform: scale(0);
+        transform: scale(0) translateY(0);
         opacity: 0;
         pointer-events: none;
+        animation: none;
       }
 
       mat-icon {
