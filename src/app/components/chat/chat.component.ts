@@ -45,9 +45,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isBlocked = false;
 
   quickActions = [
-    { label: 'Show Tables', prompt: 'Show me all tables in the database' },
-    { label: 'Customer Info', prompt: 'Show customer information' },
-    { label: 'Recent Orders', prompt: 'Show recent orders' },
+    { label: 'Sales Report', prompt: 'Show me the sales report for this month' },
+    { label: 'Recent Orders', prompt: 'Show me the 5 most recent orders' },
+    { label: 'Recent Invoices', prompt: 'Show me the 5 most recent invoices' },
+    { label: 'Top Customers', prompt: 'Show me the top customers of this month' },
   ];
 
   constructor(

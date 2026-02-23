@@ -63,6 +63,12 @@
         <mat-icon>{{ showHistory ? 'chat' : 'history' }}</mat-icon>
       </button>
       <button mat-icon-button
+              (click)="startFeatureTour()"
+              matTooltip="Feature Tour"
+              class="header-btn">
+        <mat-icon>tour</mat-icon>
+      </button>
+      <button mat-icon-button
               (click)="maximizeChat($event)"
               [matTooltip]="(state$ | async)?.size === 'fullscreen' ? 'Exit Fullscreen' : 'Fullscreen'"
               class="header-btn">
@@ -118,25 +124,21 @@
         <h4>Hi! How can I help you?</h4>
         <p>I'm here to assist with any questions you have.</p>
         <div class="quick-questions">
-          <button class="quick-btn" (click)="executeQuickAction('Show me all tables in the database')">
-            <mat-icon>storage</mat-icon>
-            Show Tables
+          <button class="quick-btn" (click)="executeQuickAction('Show me the sales report for this month')">
+            <mat-icon>bar_chart</mat-icon>
+            Sales Report
           </button>
-          <button class="quick-btn" (click)="executeQuickAction('Show customer information')">
-            <mat-icon>people</mat-icon>
-            Customer Info
-          </button>
-          <button class="quick-btn" (click)="executeQuickAction('Show recent orders from the last 7 days')">
+          <button class="quick-btn" (click)="executeQuickAction('Show me the 5 most recent orders')">
             <mat-icon>receipt</mat-icon>
             Recent Orders
           </button>
-          <button class="quick-btn" (click)="executeQuickAction('Check inventory status for products')">
-            <mat-icon>inventory</mat-icon>
-            Inventory Status
+          <button class="quick-btn" (click)="executeQuickAction('Show me the 5 most recent invoices')">
+            <mat-icon>description</mat-icon>
+            Recent Invoices
           </button>
-          <button class="quick-btn" (click)="executeQuickAction('Help with SQL queries')">
-            <mat-icon>code</mat-icon>
-            SQL Help
+          <button class="quick-btn" (click)="executeQuickAction('Show me the top customers of this month')">
+            <mat-icon>people</mat-icon>
+            Top Customers
           </button>
         </div>
       </div>
