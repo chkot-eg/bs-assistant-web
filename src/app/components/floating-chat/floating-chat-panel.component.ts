@@ -22,6 +22,7 @@ import { TableService } from '../../services/table.service';
 import { SchemaService } from '../../services/schema.service';
 import { DocumentService } from '../../services/document.service';
 import { SessionService } from '../../services/session.service';
+import { FeatureTourService } from '../../services/feature-tour.service';
 import { Session } from '../../models/session.model';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
@@ -107,11 +108,10 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   // Quick actions list
   quickActions = [
-    { label: 'Browse Tables', prompt: '/tables', icon: 'storage' },
-    { label: 'Customer Info', prompt: 'Show customer information', icon: 'people' },
-    { label: 'Recent Orders', prompt: 'Show recent orders from the last 7 days', icon: 'receipt' },
-    { label: 'Inventory', prompt: 'Check inventory status for products', icon: 'inventory' },
-    { label: 'SQL Help', prompt: 'Help with SQL queries', icon: 'code' }
+    { label: 'Sales Report', prompt: 'Show me the sales report for this month', icon: 'bar_chart' },
+    { label: 'Recent Orders', prompt: 'Show me the 5 most recent orders', icon: 'receipt' },
+    { label: 'Recent Invoices', prompt: 'Show me the 5 most recent invoices', icon: 'description' },
+    { label: 'Top Customers', prompt: 'Show me the top customers of this month', icon: 'people' },
   ];
 
   // SSE Streaming state
@@ -163,7 +163,8 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private schemaService: SchemaService,
     private documentService: DocumentService,
     private sessionService: SessionService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private featureTourService: FeatureTourService
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -1018,6 +1019,11 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   // --- History Panel ---
+
+  startFeatureTour(): void {
+    this.featureTourService.resetTour();
+    this.featureTourService.startTour();
+  }
 
   toggleHistory(): void {
     this.showHistory = !this.showHistory;

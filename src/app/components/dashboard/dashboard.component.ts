@@ -76,6 +76,6 @@ export class DashboardComponent implements OnInit {
 
   formatPercent(rate: number | undefined): string {
     if (rate === undefined || rate === null) return '-';
-    return `${(rate * 100).toFixed(1)}%`;
+    return `${rate.toFixed(1)}%`;
   }
 }

@@ -52,7 +52,8 @@ export class HealthDashboardComponent implements OnInit, OnDestroy {
       stream: 'Agentic Stream',
       documents: 'Document Service',
       tableMappings: 'Table Mappings',
-      metrics: 'Metrics Service'
+      metrics: 'Metrics Service',
+      chat: 'Chat Service'
     };
     return names[key] || key;
   }

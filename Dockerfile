@@ -16,9 +16,7 @@ RUN npm run build:prod
 FROM nginx:alpine
 
 COPY --from=build /app/dist/bs-assistant-web/browser /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/templates/default.conf.template
-
-ENV BACKEND_URL=http://10.30.9.130:15305
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 4200
 
