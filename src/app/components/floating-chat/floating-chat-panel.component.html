@@ -228,6 +228,18 @@
                     Cached
                   </span>
                 }
+                @if (getTokenEstimate(message.id); as tokenEst) {
+                  <span class="metadata-chip token-chip"
+                        matTooltip="Estimated tokens (input + output) — ~4 chars/token">
+                    <mat-icon>data_usage</mat-icon>
+                    ~{{ tokenEst.totalTokens | number }} tokens
+                  </span>
+                  <span class="metadata-chip cost-chip"
+                        [matTooltip]="'Estimated cost (' + tokenEst.totalTokens + ' tokens × $5.00/1M — GPT-4.1 blended rate)'">
+                    <mat-icon>payments</mat-icon>
+                    ~{{ formatTokenCost(tokenEst.estimatedCost) }}
+                  </span>
+                }
               </div>
 
               @if (message.metadata.agentStrategy) {

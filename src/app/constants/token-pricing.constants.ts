@@ -1,0 +1,5 @@
+export const TOKEN_PRICING = {
+  MODEL_NAME: 'GPT-4.1',
+  CHARS_PER_TOKEN: 4,
+  COST_PER_MILLION_TOKENS: 5.00,
+} as const;
