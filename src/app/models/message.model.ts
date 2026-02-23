@@ -106,7 +106,6 @@ export interface MessageMetadata {
   executedSql?: string;
   executionSteps?: AgenticStep[];
   synthesizedAnswer?: string;
-  rawDataContent?: string;
 }
 
 export interface StreamingStep {

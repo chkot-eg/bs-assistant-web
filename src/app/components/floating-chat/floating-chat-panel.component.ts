@@ -136,7 +136,6 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   // Metadata expand/collapse state
   private expandedSqlMessages = new Set<string>();
   private expandedStepsMessages = new Set<string>();
-  private expandedRawDataMessages = new Set<string>();
   private expandedStepSqlEntries = new Set<string>();
   private expandedStreamingSqlEntries = new Set<number>();
 
@@ -599,8 +598,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           || null;
         if (synthesized) {
           completeMetadata.synthesizedAnswer = synthesized;
-          completeMetadata.rawDataContent = completeContent;
-          completeContent = synthesized;
+          completeContent = synthesized + '\n\n' + completeContent;
         }
         this.pendingSynthesizedAnswer = null;
 
@@ -898,18 +896,6 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   isStepsExpanded(messageId: string): boolean {
     return this.expandedStepsMessages.has(messageId);
-  }
-
-  toggleRawDataExpanded(messageId: string): void {
-    if (this.expandedRawDataMessages.has(messageId)) {
-      this.expandedRawDataMessages.delete(messageId);
-    } else {
-      this.expandedRawDataMessages.add(messageId);
-    }
-  }
-
-  isRawDataExpanded(messageId: string): boolean {
-    return this.expandedRawDataMessages.has(messageId);
   }
 
   getTokenEstimate(messageId: string): TokenEstimate | null {

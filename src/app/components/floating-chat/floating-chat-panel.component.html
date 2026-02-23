@@ -310,23 +310,6 @@
             </div>
           }
 
-          <!-- Collapsible Raw Data (when synthesized answer replaced the content) -->
-          @if (message.metadata?.rawDataContent; as rawData) {
-            @if (message.role === 'assistant') {
-              <div class="metadata-raw-data-section">
-                <button class="metadata-toggle" (click)="toggleRawDataExpanded(message.id)">
-                  <mat-icon>{{ isRawDataExpanded(message.id) ? 'expand_less' : 'table_chart' }}</mat-icon>
-                  <span>{{ isRawDataExpanded(message.id) ? 'Hide data' : 'Show data' }}</span>
-                </button>
-                @if (isRawDataExpanded(message.id)) {
-                  <div class="raw-data-block" [@slideDown]>
-                    <div class="markdown-content" [innerHTML]="renderMarkdown(rawData)"></div>
-                  </div>
-                }
-              </div>
-            }
-          }
-
           <div class="message-time">
             {{ message.timestamp | date:'HH:mm' }}
           </div>
