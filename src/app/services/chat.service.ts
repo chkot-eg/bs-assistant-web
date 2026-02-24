@@ -26,7 +26,7 @@ export class ChatService {
 
   // Rate limiting
   private lastRequestTime = 0;
-  private readonly MIN_REQUEST_INTERVAL = 1000; // 1 second
+  private readonly MIN_REQUEST_INTERVAL = environment.minRequestIntervalMs;
 
   constructor(
     private http: HttpClient,
@@ -83,9 +83,9 @@ export class ChatService {
 
     const body: QueryRequest = {
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5,
+      maxIterations: environment.maxIterations,
       includeDebugDetails: false
     };
 
@@ -282,9 +282,9 @@ export class ChatService {
 
     return this.agenticStreamService.connectStream({
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5
+      maxIterations: environment.maxIterations
     });
   }
 

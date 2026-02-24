@@ -10,12 +10,12 @@ export class TableService {
 
   constructor(private http: HttpClient) {}
 
-  getAllTables(library: string = 'ADB800'): Observable<QueryResponse> {
+  getAllTables(library: string = environment.defaultLibrary): Observable<QueryResponse> {
     const params = new HttpParams().set('library', library);
     return this.http.get<QueryResponse>(`${this.apiUrl}/api/v1/tables`, { params });
   }
 
-  searchTables(query: string, library: string = 'ADB800'): Observable<QueryResponse> {
+  searchTables(query: string, library: string = environment.defaultLibrary): Observable<QueryResponse> {
     const params = new HttpParams().set('q', query).set('library', library);
     return this.http.get<QueryResponse>(`${this.apiUrl}/api/v1/tables/search`, { params });
   }

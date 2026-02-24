@@ -32,6 +32,7 @@ import { marked } from 'marked';
 import { parseMcpResponseText } from '../../utils/mcp-response-parser';
 import { TokenTrackingService } from '../../services/token-tracking.service';
 import { TokenEstimate } from '../../models/token-usage.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-floating-chat-panel',
@@ -809,7 +810,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   private executeDocSearchCommand(query: string): void {
     this.chatService.addUserMessage(`/search ${query}`);
     this.chatService.setLoading(true);
-    this.documentService.search({ query, topK: 5 }).subscribe({
+    this.documentService.search({ query, topK: environment.searchTopK }).subscribe({
       next: (response) => {
         this.chatService.setLoading(false);
         if (response.success && response.results.length > 0) {
@@ -938,8 +939,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     if (!input.files || input.files.length === 0) return;
 
     const file = input.files[0];
-    if (file.size > 10 * 1024 * 1024) {
-      this.chatService.addSystemMessage('File too large. Maximum size is 10MB.', 'text');
+    const maxBytes = environment.maxUploadSizeMB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      this.chatService.addSystemMessage(`File too large. Maximum size is ${environment.maxUploadSizeMB}MB.`, 'text');
       this.resetFileInput();
       return;
     }

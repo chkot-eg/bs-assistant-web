@@ -4,5 +4,12 @@ export const environment = {
   sessionTimeout: 86400000,
   maxRetries: 3,
   retryDelay: 1000,
-  sseTimeout: 300000
+  sseTimeout: 300000,
+
+  // Library / query defaults
+  defaultLibrary: 'ADB800',
+  maxIterations: 5,
+  searchTopK: 5,
+  maxUploadSizeMB: 10,
+  minRequestIntervalMs: 1000
 };

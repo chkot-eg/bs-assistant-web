@@ -18,7 +18,7 @@ export class AgenticStreamService {
     return new Observable(observer => {
       const url = new URL(`${window.location.origin}${this.apiUrl}/api/v1/query/agentic/stream`);
       url.searchParams.set('query', params.query);
-      url.searchParams.set('library', params.library ?? 'ADB800');
+      url.searchParams.set('library', params.library ?? environment.defaultLibrary);
       if (params.sessionId) url.searchParams.set('sessionId', params.sessionId);
       if (params.maxIterations) url.searchParams.set('maxIterations', String(params.maxIterations));
 
