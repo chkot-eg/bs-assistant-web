@@ -8,7 +8,7 @@ export const environment = {
 
   // Library / query defaults
   defaultLibrary: 'ADB800',
-  maxIterations: 5,
+  maxIterations: 7,
   searchTopK: 5,
   maxUploadSizeMB: 10,
   minRequestIntervalMs: 1000
