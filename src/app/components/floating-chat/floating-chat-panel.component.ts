@@ -18,6 +18,7 @@ import { Observable, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { VoiceService, VoiceState } from '../../services/voice.service';
+import { TtsService, TtsState } from '../../services/tts.service';
 import { TableService } from '../../services/table.service';
 import { SchemaService } from '../../services/schema.service';
 import { DocumentService } from '../../services/document.service';
@@ -149,6 +150,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   // Voice properties
   voiceState$: Observable<VoiceState>;
   selectedLanguage: string;
+
+  // TTS state
+  ttsState$: Observable<TtsState>;
   currentVoiceState: VoiceState = {
     isRecording: false,
     isProcessing: false,
@@ -170,6 +174,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private sanitizer: DomSanitizer,
     private featureTourService: FeatureTourService,
     private tokenTrackingService: TokenTrackingService
+    private ttsService: TtsService
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -177,6 +182,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     this.isLoading$ = this.chatService.isLoading$;
     this.voiceState$ = this.voiceService.voiceState$;
     this.selectedLanguage = this.voiceService.getDefaultLanguage();
+    this.ttsState$ = this.ttsService.ttsState$;
   }
 
   ngOnInit(): void {
@@ -259,6 +265,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     this.destroy$.next();
     this.destroy$.complete();
     this.voiceService.stopRecording();
+    this.ttsService.stop();
     if (this.streamSubscription) {
       this.streamSubscription.unsubscribe();
     }
@@ -604,6 +611,18 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
         this.pendingSynthesizedAnswer = null;
 
         this.chatService.addStreamingResult(completeContent, completeMetadata, completeQueryResponse);
+
+        // Auto-play TTS if message was sent via voice command
+        if (this.voiceService.consumeVoiceSendFlag() && this.ttsService.isSupported()) {
+          setTimeout(() => {
+            const messages = this.chatService.getMessages();
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.isError) {
+              this.ttsService.speak(lastMsg.id, completeContent, this.selectedLanguage);
+            }
+          }, 300);
+        }
+
         this.isStreaming = false;
         this.streamingSteps = [];
         this.scrollToBottom();
@@ -1378,6 +1397,27 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   /**
+   * Toggle TTS playback for a message
+   */
+  toggleTts(message: Message): void {
+    this.ttsService.speak(message.id, message.content, this.selectedLanguage);
+  }
+
+  /**
+   * Stop TTS playback
+   */
+  stopTts(): void {
+    this.ttsService.stop();
+  }
+
+  /**
+   * Check if TTS is supported
+   */
+  isTtsSupported(): boolean {
+    return this.ttsService.isSupported();
+  }
+
+  /**
    * Handle voice commands (SEND)
    */
   private handleVoiceCommand(command: 'SEND', transcript: string): void {
@@ -1385,6 +1425,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
     // Stop recording first
     this.voiceService.stopRecording();
+
+    // Mark that this message was sent via voice (for TTS auto-play)
+    this.voiceService.markVoiceSend();
 
     // Fill the textarea with the transcript (without the command phrase)
     this.messageControl.setValue(transcript, { emitEvent: false });

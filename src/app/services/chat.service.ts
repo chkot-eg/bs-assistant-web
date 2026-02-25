@@ -288,6 +288,10 @@ export class ChatService {
     });
   }
 
+  getMessages(): Message[] {
+    return this.messagesSubject.value;
+  }
+
   addStreamingResult(content: string, metadata: MessageMetadata, queryResponse?: QueryResponse): void {
     const assistantMessage: Message = {
       id: this.generateMessageId(),

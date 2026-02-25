@@ -409,6 +409,11 @@
         }
       }
 
+      // Show TTS button fully on hover over the entire message row
+      &:hover .tts-btn {
+        opacity: 1;
+      }
+
       .message-bubble {
         max-width: 75%;
         padding: 12px 16px;
@@ -759,13 +764,6 @@
           }
         }
 
-        .message-time {
-          font-size: 10px;
-          opacity: 0.7;
-          margin-top: 6px;
-          text-align: right;
-        }
-
         .typing-indicator {
           display: flex;
           gap: 4px;
@@ -786,6 +784,58 @@
               animation-delay: 0.4s;
             }
           }
+        }
+      }
+
+      .message-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        max-width: 75%;
+
+        .message-time-text {
+          font-size: 10px;
+          opacity: 0.7;
+        }
+
+        .tts-btn {
+          width: 24px;
+          height: 24px;
+          line-height: 24px;
+          opacity: 0.4;
+          transition: opacity 0.2s ease;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: #6C757D;
+          }
+
+          &:hover {
+            opacity: 1;
+
+            mat-icon {
+              color: #1976D2;
+            }
+          }
+
+          .tts-active {
+            color: #1976D2;
+            animation: tts-pulse 1.5s infinite;
+          }
+
+          .tts-loading {
+            color: #FF9800;
+            animation: tts-spin 1s linear infinite;
+          }
+        }
+
+        // Always show when active (playing or loading)
+        .tts-btn:has(.tts-active),
+        .tts-btn:has(.tts-loading) {
+          opacity: 1 !important;
         }
       }
     }
@@ -1827,6 +1877,16 @@
     opacity: 0.85;
     transform: scale(1.02);
   }
+}
+
+@keyframes tts-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes tts-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 // Enhanced Scrollbar
