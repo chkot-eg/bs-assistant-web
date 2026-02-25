@@ -70,6 +70,10 @@ declare global {
 export class VoiceService {
   private recognition: SpeechRecognition | null = null;
   private isListening = false;
+  // Set to true only when the user (or a fatal error) explicitly stops recording.
+  // Prevents auto-restart in onend for intentional/fatal stops.
+  private intentionallyStopped = false;
+  private autoRestartTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Store final results separately to avoid duplication
   private finalTranscript = '';
@@ -131,6 +135,7 @@ export class VoiceService {
       console.warn('Speech Recognition API not supported');
     }
   }
+
 
   private setupRecognitionListeners(): void {
     if (!this.recognition) return;
@@ -206,20 +211,23 @@ export class VoiceService {
 
       const errorMessages: { [key: string]: string } = {
         'network': 'Network error. Check your internet connection.',
-        'no-speech': 'No speech detected. Please try again.',
         'audio-capture': 'No microphone found.',
         'not-allowed': 'Microphone access denied. Please allow access.',
-        'aborted': 'Recording stopped.',
       };
 
-      // Don't show error if we already have a transcript
-      if (event.error === 'no-speech' && this.finalTranscript) {
+      // no-speech: browser found silence — suppress the error and let onend auto-restart
+      if (event.error === 'no-speech') {
         return;
       }
 
-      // Don't show aborted as error
+      // aborted: caused by our own stopRecording() / intentionallyStopped — ignore
       if (event.error === 'aborted') {
         return;
+      }
+
+      // Fatal errors: mark as intentional so onend does NOT auto-restart
+      if (['not-allowed', 'audio-capture', 'network'].includes(event.error)) {
+        this.intentionallyStopped = true;
       }
 
       const errorMsg = errorMessages[event.error] || `Error: ${event.error}`;
@@ -233,6 +241,9 @@ export class VoiceService {
 
     this.recognition.onend = () => {
       console.log('Recognition ended');
+
+      const shouldRestart = !this.intentionallyStopped;
+      this.intentionallyStopped = false;
       this.isListening = false;
 
       // Save the transcript here — onend fires AFTER all onresult final calls,
@@ -244,12 +255,28 @@ export class VoiceService {
         this.savedTranscript = finalizedTranscript;
       }
 
-      this.updateState({
-        isRecording: false,
-        isProcessing: false,
-        interimTranscript: '',
-        commandDetected: null
-      });
+      if (shouldRestart) {
+        // Keep isRecording: true so the button stays lit — the user didn't stop.
+        // Only clear interim state while the engine briefly re-initialises.
+        this.updateState({
+          isProcessing: false,
+          interimTranscript: '',
+          commandDetected: null
+        });
+        const { language } = this.voiceState.value;
+        this.autoRestartTimeout = setTimeout(() => {
+          this.autoRestartTimeout = null;
+          this.startRecording(language);
+        }, 300);
+      } else {
+        // Intentional stop — reflect that in the UI
+        this.updateState({
+          isRecording: false,
+          isProcessing: false,
+          interimTranscript: '',
+          commandDetected: null
+        });
+      }
     };
   }
 
@@ -267,15 +294,13 @@ export class VoiceService {
     }
 
     try {
-      // Configure recognition
       this.recognition.lang = language;
-      this.recognition.continuous = true;      // Keep listening
-      this.recognition.interimResults = true;  // Show real-time results
-      this.recognition.maxAlternatives = 1;
 
       // Reset only the current session; keep savedTranscript for resume
       this.finalTranscript = '';
+
       this.updateState({
+        isRecording: true,
         interimTranscript: '',
         error: null,
         language
@@ -303,6 +328,13 @@ export class VoiceService {
 
   stopRecording(): void {
     console.log('Stopping recording...');
+
+    // Cancel any pending auto-restart before marking as intentional stop
+    if (this.autoRestartTimeout) {
+      clearTimeout(this.autoRestartTimeout);
+      this.autoRestartTimeout = null;
+    }
+    this.intentionallyStopped = true;
 
     if (this.recognition && this.isListening) {
       try {
@@ -362,9 +394,9 @@ export class VoiceService {
 
     console.log('[DETECT] Checking text for commands:', text);
 
-    // Check if transcript ends with "ask Fabrioo" or "Fabrioo"
-    if (/\b(ASK\s+)?FABRIOO?$/i.test(text) || /\b(ASK\s+)?FABRIO$/i.test(text)) {
-      console.log('[DETECT] Matched ask Fabrioo command');
+    // Check if transcript ends with "ask <anything starting with fab>"
+    if (/\bASK\s+FAB\w*$/i.test(text)) {
+      console.log('[DETECT] Matched ask Fab* command');
       return 'SEND';
     }
 
@@ -379,7 +411,7 @@ export class VoiceService {
     // Strip trailing punctuation first (same normalization as detectCommand)
     const normalized = transcript.trim().replace(/[.,!?;:]+$/, '').trim();
 
-    const result = normalized.replace(/\s*\b(ask\s+)?(fabrioo?|fabrio)\s*$/i, '').trim();
+    const result = normalized.replace(/\s*\bask\s+fab\w*\s*$/i, '').trim();
     console.log('[REMOVE] Input:', transcript, '-> Normalized:', normalized, '-> Output:', result);
     return result;
   }

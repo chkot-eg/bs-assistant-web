@@ -26,7 +26,7 @@ export class ChatService {
 
   // Rate limiting
   private lastRequestTime = 0;
-  private readonly MIN_REQUEST_INTERVAL = 1000; // 1 second
+  private readonly MIN_REQUEST_INTERVAL = environment.minRequestIntervalMs;
 
   constructor(
     private http: HttpClient,
@@ -83,9 +83,9 @@ export class ChatService {
 
     const body: QueryRequest = {
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5,
+      maxIterations: environment.maxIterations,
       includeDebugDetails: false
     };
 
@@ -110,7 +110,8 @@ export class ChatService {
               executionSteps: response.executionSteps?.map(step => ({
                 ...step,
                 sqlQuery: step.sqlQuery || extractSqlFromArguments(step.arguments)
-              }))
+              })),
+              synthesizedAnswer: response.synthesizedAnswer
             };
             const assistantMessage: Message = {
               id: this.generateMessageId(),
@@ -150,6 +151,10 @@ export class ChatService {
 
     // If data is a string (already formatted by the agentic service), use as-is
     if (typeof response.data === 'string') {
+      // Prepend synthesizedAnswer if available
+      if (response.synthesizedAnswer) {
+        return response.synthesizedAnswer + '\n\n' + response.data;
+      }
       return response.data;
     }
 
@@ -181,7 +186,14 @@ export class ChatService {
       parts.push(`\nSQL: ${response.executedSql}`);
     }
 
-    return parts.join('\n');
+    const rawContent = parts.join('\n');
+
+    // Prepend synthesizedAnswer if available
+    if (response.synthesizedAnswer) {
+      return response.synthesizedAnswer + '\n\n' + rawContent;
+    }
+
+    return rawContent;
   }
 
   stopCurrentRequest(): void {
@@ -270,9 +282,9 @@ export class ChatService {
 
     return this.agenticStreamService.connectStream({
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5
+      maxIterations: environment.maxIterations
     });
   }
 

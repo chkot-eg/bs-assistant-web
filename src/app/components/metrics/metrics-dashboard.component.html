@@ -80,6 +80,51 @@
     </mat-card>
   </div>
 
+  <!-- Token Usage & Cost (Session Estimates) -->
+  @if (sessionTokenSummary$ | async; as tokenSummary) {
+    <div class="token-usage-section">
+      <div class="section-header">
+        <h2>Token Usage & Cost</h2>
+        <span class="estimated-badge"
+              matTooltip="Tokens estimated from message length (~4 chars/token). Cost uses GPT-4.1 blended rate of $5.00/1M tokens.">
+          <mat-icon>info</mat-icon>
+          Estimated
+        </span>
+      </div>
+
+      <div class="stats-grid">
+        <mat-card class="stat-card primary">
+          <mat-card-content>
+            <mat-icon>data_usage</mat-icon>
+            <div class="stat-value">~{{ formatTokens(tokenSummary.totalTokens) }}</div>
+            <div class="stat-label">Total Est. Tokens</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card success">
+          <mat-card-content>
+            <mat-icon>payments</mat-icon>
+            <div class="stat-value">~{{ formatCost(tokenSummary.totalCost) }}</div>
+            <div class="stat-label">Total Est. Cost</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card info">
+          <mat-card-content>
+            <mat-icon>functions</mat-icon>
+            <div class="stat-value">~{{ formatTokens(tokenSummary.avgTokensPerQuery) }}</div>
+            <div class="stat-label">Avg Tokens/Query</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card accent">
+          <mat-card-content>
+            <mat-icon>smart_toy</mat-icon>
+            <div class="stat-value">{{ tokenSummary.modelName }}</div>
+            <div class="stat-label">Model</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+
   @if (toolEntries.length > 0) {
     <div class="tools-section">
       <h2>Tool Performance</h2>

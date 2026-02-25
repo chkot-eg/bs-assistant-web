@@ -13,6 +13,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TableService } from '../../services/table.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-table-browser',
@@ -27,7 +28,7 @@ import { TableService } from '../../services/table.service';
 })
 export class TableBrowserComponent implements OnInit {
   searchQuery = '';
-  selectedLibrary = 'ADB800';
+  selectedLibrary = environment.defaultLibrary;
   isLoading = false;
   displayedColumns: string[] = [];
   dataSource = new MatTableDataSource<any>([]);

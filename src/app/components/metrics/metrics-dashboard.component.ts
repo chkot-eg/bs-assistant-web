@@ -6,16 +6,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { forkJoin } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin, Observable } from 'rxjs';
 import { MetricsService } from '../../services/metrics.service';
 import { AgenticMetrics, ToolMetrics, ToolMetricEntry } from '../../models/metrics.model';
+import { TokenTrackingService } from '../../services/token-tracking.service';
+import { SessionTokenSummary } from '../../models/token-usage.model';
 
 @Component({
   selector: 'app-metrics-dashboard',
   standalone: true,
   imports: [
     CommonModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatProgressSpinnerModule, MatTableModule, MatSlideToggleModule
+    MatProgressSpinnerModule, MatTableModule, MatSlideToggleModule,
+    MatTooltipModule
   ],
   templateUrl: './metrics-dashboard.component.html',
   styleUrls: ['./metrics-dashboard.component.scss']
@@ -27,9 +31,16 @@ export class MetricsDashboardComponent implements OnInit, OnDestroy {
   autoRefresh = false;
   private refreshInterval: any;
 
+  sessionTokenSummary$: Observable<SessionTokenSummary>;
+
   toolColumns = ['name', 'totalCalls', 'successes', 'errors', 'successRate', 'avgTime', 'maxTime'];
 
-  constructor(private metricsService: MetricsService) {}
+  constructor(
+    private metricsService: MetricsService,
+    private tokenTrackingService: TokenTrackingService
+  ) {
+    this.sessionTokenSummary$ = this.tokenTrackingService.sessionSummary$;
+  }
 
   ngOnInit(): void {
     this.loadMetrics();
@@ -80,6 +91,17 @@ export class MetricsDashboardComponent implements OnInit, OnDestroy {
 
   formatPercent(rate: number | undefined): string {
     if (rate === undefined || rate === null) return '-';
-    return `${(rate * 100).toFixed(1)}%`;
+    return `${rate.toFixed(1)}%`;
+  }
+
+  formatTokens(tokens: number): string {
+    if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+    if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
+    return `${tokens}`;
+  }
+
+  formatCost(cost: number): string {
+    if (cost < 0.01) return `$${cost.toFixed(4)}`;
+    return `$${cost.toFixed(2)}`;
   }
 }

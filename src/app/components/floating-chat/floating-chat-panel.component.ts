@@ -23,6 +23,7 @@ import { TableService } from '../../services/table.service';
 import { SchemaService } from '../../services/schema.service';
 import { DocumentService } from '../../services/document.service';
 import { SessionService } from '../../services/session.service';
+import { FeatureTourService } from '../../services/feature-tour.service';
 import { Session } from '../../models/session.model';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
@@ -30,6 +31,9 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { parseMcpResponseText } from '../../utils/mcp-response-parser';
+import { TokenTrackingService } from '../../services/token-tracking.service';
+import { TokenEstimate } from '../../models/token-usage.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-floating-chat-panel',
@@ -108,17 +112,17 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   // Quick actions list
   quickActions = [
-    { label: 'Browse Tables', prompt: '/tables', icon: 'storage' },
-    { label: 'Customer Info', prompt: 'Show customer information', icon: 'people' },
-    { label: 'Recent Orders', prompt: 'Show recent orders from the last 7 days', icon: 'receipt' },
-    { label: 'Inventory', prompt: 'Check inventory status for products', icon: 'inventory' },
-    { label: 'SQL Help', prompt: 'Help with SQL queries', icon: 'code' }
+    { label: 'Sales Report', prompt: 'Show me the sales report for this month', icon: 'bar_chart' },
+    { label: 'Recent Orders', prompt: 'Show me the 5 most recent orders', icon: 'receipt' },
+    { label: 'Recent Invoices', prompt: 'Show me the 5 most recent invoices', icon: 'description' },
+    { label: 'Top Customers', prompt: 'Show me the top customers of this month', icon: 'people' },
   ];
 
   // SSE Streaming state
   isStreaming = false;
   streamingSteps: StreamingStep[] = [];
   currentResponseUsesContext = false;
+  pendingSynthesizedAnswer: string | null = null;
   private streamSubscription: Subscription | null = null;
 
   // Chat limit warning (managed by backend)
@@ -168,6 +172,8 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private documentService: DocumentService,
     private sessionService: SessionService,
     private sanitizer: DomSanitizer,
+    private featureTourService: FeatureTourService,
+    private tokenTrackingService: TokenTrackingService
     private ttsService: TtsService
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
@@ -351,6 +357,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       this.streamingSteps = [];
       this.expandedStreamingSqlEntries.clear();
       this.currentResponseUsesContext = false;
+      this.pendingSynthesizedAnswer = null;
 
       // Try SSE streaming
       this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext)
@@ -441,6 +448,10 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           icon: 'hourglass_empty'
         });
         this.scrollToBottom();
+        break;
+
+      case 'synthesis':
+        this.pendingSynthesizedAnswer = event.data.answer;
         break;
 
       case 'limit':
@@ -588,6 +599,16 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
             completeMetadata.executedSql = lastSuccess.sqlQuery;
           }
         }
+
+        // Resolve synthesized answer: prefer synthesis SSE event, fallback to agenticMetadata
+        const synthesized = this.pendingSynthesizedAnswer
+          || event.data.agenticMetadata?.synthesizedAnswer
+          || null;
+        if (synthesized) {
+          completeMetadata.synthesizedAnswer = synthesized;
+          completeContent = synthesized + '\n\n' + completeContent;
+        }
+        this.pendingSynthesizedAnswer = null;
 
         this.chatService.addStreamingResult(completeContent, completeMetadata, completeQueryResponse);
 
@@ -808,7 +829,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   private executeDocSearchCommand(query: string): void {
     this.chatService.addUserMessage(`/search ${query}`);
     this.chatService.setLoading(true);
-    this.documentService.search({ query, topK: 5 }).subscribe({
+    this.documentService.search({ query, topK: environment.searchTopK }).subscribe({
       next: (response) => {
         this.chatService.setLoading(false);
         if (response.success && response.results.length > 0) {
@@ -897,6 +918,14 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     return this.expandedStepsMessages.has(messageId);
   }
 
+  getTokenEstimate(messageId: string): TokenEstimate | null {
+    return this.tokenTrackingService.getEstimateForMessage(messageId);
+  }
+
+  formatTokenCost(cost: number): string {
+    return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
+  }
+
   toggleStepSqlExpanded(messageId: string, stepIndex: number): void {
     const key = `${messageId}_step_${stepIndex}`;
     if (this.expandedStepSqlEntries.has(key)) {
@@ -929,8 +958,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     if (!input.files || input.files.length === 0) return;
 
     const file = input.files[0];
-    if (file.size > 10 * 1024 * 1024) {
-      this.chatService.addSystemMessage('File too large. Maximum size is 10MB.', 'text');
+    const maxBytes = environment.maxUploadSizeMB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      this.chatService.addSystemMessage(`File too large. Maximum size is ${environment.maxUploadSizeMB}MB.`, 'text');
       this.resetFileInput();
       return;
     }
@@ -1037,6 +1067,11 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   }
 
   // --- History Panel ---
+
+  startFeatureTour(): void {
+    this.featureTourService.resetTour();
+    this.featureTourService.startTour();
+  }
 
   toggleHistory(): void {
     this.showHistory = !this.showHistory;

@@ -603,6 +603,16 @@
               &.direct { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
               &.mcp { background: rgba(255, 152, 0, 0.1); color: #FF9800; }
             }
+
+            &.token-chip {
+              background: rgba(0, 150, 136, 0.1);
+              color: #009688;
+            }
+
+            &.cost-chip {
+              background: rgba(121, 85, 72, 0.1);
+              color: #795548;
+            }
           }
 
           .metadata-strategy {

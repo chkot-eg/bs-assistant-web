@@ -42,6 +42,7 @@ export interface QueryResponse {
   debugDetails?: string;
   adaptationFeedback?: string[];
   agentErrors?: string[];
+  synthesizedAnswer?: string;
 
   // Chat limit warning fields
   hasWarning?: boolean;
@@ -104,6 +105,7 @@ export interface MessageMetadata {
   conversationContextLoaded?: boolean;
   executedSql?: string;
   executionSteps?: AgenticStep[];
+  synthesizedAnswer?: string;
 }
 
 export interface StreamingStep {

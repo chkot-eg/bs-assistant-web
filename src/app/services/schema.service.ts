@@ -10,7 +10,7 @@ export class SchemaService {
 
   constructor(private http: HttpClient) {}
 
-  getSchema(tableName: string, library: string = 'ADB800'): Observable<QueryResponse> {
+  getSchema(tableName: string, library: string = environment.defaultLibrary): Observable<QueryResponse> {
     const params = new HttpParams().set('library', library);
     return this.http.get<QueryResponse>(
       `${this.apiUrl}/api/v1/schemas/${encodeURIComponent(tableName)}`,
