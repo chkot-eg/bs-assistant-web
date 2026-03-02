@@ -102,6 +102,37 @@
     width: 16px;
     height: 16px;
   }
+
+  &.hint {
+    font-size: 11px;
+    color: #9CA3AF;
+  }
+}
+
+.rag-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &.available {
+    background: #E8F5E9;
+    color: #2E7D32;
+  }
+
+  &.unavailable {
+    background: #FFEBEE;
+    color: #C62828;
+  }
 }
 
 .search-type-badge {
@@ -117,11 +148,6 @@
     background: #BBDEFB;
     color: #1565C0;
   }
-
-  &.keyword {
-    background: #FFE0B2;
-    color: #E65100;
-  }
 }
 
 // Sections
@@ -136,58 +162,34 @@
   }
 }
 
-// Table mappings table
-.table-card {
+// Extracted tables
+.extracted-tables-card {
   border-radius: 12px;
   border: 1px solid #e0e0e0;
-  overflow: hidden;
 }
 
-.mapping-table {
-  width: 100%;
-
-  th {
-    font-weight: 600;
-    color: #6C757D;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  td {
-    font-size: 14px;
-  }
+.extracted-tables-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.table-name-cell {
+.table-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 8px;
   font-family: 'Courier New', Courier, monospace;
   font-weight: 600;
-  white-space: nowrap;
+  font-size: 13px;
+  background: #E3F2FD;
+  color: #1565C0;
+  border: 1px solid #BBDEFB;
 }
 
-.category-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  background: #E8EAF6;
-  color: #283593;
-  text-transform: uppercase;
-}
-
-.keywords-cell {
+.tables-hint {
+  margin: 12px 0 0;
   font-size: 12px;
-  color: #6C757D;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.priority-cell {
-  text-align: center;
-  font-weight: 600;
+  color: #9CA3AF;
 }
 
 // Business rule cards

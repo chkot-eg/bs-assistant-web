@@ -620,6 +620,14 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           }
         }
 
+        // Fallback: derive tablesUsed from SQL in execution steps
+        if (!completeMetadata.tablesUsed || completeMetadata.tablesUsed.length === 0) {
+          const tables = this.extractTableNamesFromSql(completeMetadata);
+          if (tables.length > 0) {
+            completeMetadata.tablesUsed = tables;
+          }
+        }
+
         // Clear pending synthesized answer (already consumed in first branch if applicable)
         if (!completeMetadata.synthesizedAnswer) {
           // Handle synthesized answer for non-MCP branches (second/third/fourth branch)
@@ -1498,6 +1506,41 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       rows.push(cells.join('\t'));
     });
     return rows.join('\n');
+  }
+
+  /** Extract table names from SQL found in executedSql or execution steps. */
+  private extractTableNamesFromSql(metadata: MessageMetadata): string[] {
+    const sqlStatements: string[] = [];
+    if (metadata.executedSql) {
+      sqlStatements.push(metadata.executedSql);
+    }
+    if (metadata.executionSteps?.length) {
+      metadata.executionSteps.forEach(s => {
+        if (s.success && s.sqlQuery) {
+          sqlStatements.push(s.sqlQuery);
+        }
+      });
+    }
+
+    const tableNames = new Set<string>();
+    const tablePattern = /\bFROM\s+(?:\[?(\w+)\]?\.)?(?:\[?(\w+)\]?\.)?(\[?\w+\]?)/gi;
+    const joinPattern = /\bJOIN\s+(?:\[?(\w+)\]?\.)?(?:\[?(\w+)\]?\.)?(\[?\w+\]?)/gi;
+
+    for (const sql of sqlStatements) {
+      for (const pattern of [tablePattern, joinPattern]) {
+        pattern.lastIndex = 0;
+        let match;
+        while ((match = pattern.exec(sql)) !== null) {
+          // Take the last capture group (the table name itself)
+          const name = (match[3] || '').replace(/\[|\]/g, '');
+          if (name && !name.match(/^(SELECT|WHERE|AND|OR|ON|SET|INTO)$/i)) {
+            tableNames.add(name);
+          }
+        }
+      }
+    }
+
+    return Array.from(tableNames);
   }
 
   // --- Copy table from assistant message ---

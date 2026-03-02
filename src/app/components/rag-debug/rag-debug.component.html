@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="header-title">
     <h1>RAG Debug</h1>
-    <span class="header-subtitle">Inspect table mappings & business rules retrieved for any query</span>
+    <span class="header-subtitle">Inspect document context & extracted tables for any query</span>
   </div>
 </div>
 
@@ -51,7 +51,11 @@
   <!-- Metadata Bar -->
   <mat-card class="results-meta">
     <mat-card-content>
-      <span class="search-type-badge" [class.semantic]="result.searchType === 'semantic'" [class.keyword]="result.searchType === 'keyword'">
+      <span class="rag-status" [class.available]="result.ragAvailable" [class.unavailable]="!result.ragAvailable">
+        <mat-icon>{{ result.ragAvailable ? 'check_circle' : 'error' }}</mat-icon>
+        RAG {{ result.ragAvailable ? 'Available' : 'Unavailable' }}
+      </span>
+      <span class="search-type-badge" [class.semantic]="result.searchType === 'document-based'">
         {{ result.searchType }}
       </span>
       <span class="meta-item">
@@ -60,57 +64,37 @@
       </span>
       <span class="meta-item">
         <mat-icon>table_chart</mat-icon>
-        {{ result.tableMappingCount }} table(s)
+        {{ result.extractedTableCount }} table(s) extracted
       </span>
       <span class="meta-item">
         <mat-icon>menu_book</mat-icon>
         {{ result.businessRuleCount }} rule(s)
       </span>
+      <span class="meta-item hint">
+        {{ result.knownTableCount }} known tables configured
+      </span>
     </mat-card-content>
   </mat-card>
 
-  <!-- Table Mappings -->
+  <!-- Extracted Tables -->
   <div class="section">
-    <h2>Table Mappings</h2>
-    @if (result.tableMappings.length > 0) {
-      <mat-card class="table-card">
-        <table mat-table [dataSource]="result.tableMappings" class="mapping-table">
-          <ng-container matColumnDef="tableName">
-            <th mat-header-cell *matHeaderCellDef>Table</th>
-            <td mat-cell *matCellDef="let m" class="table-name-cell">{{ m.tableName }}</td>
-          </ng-container>
-          <ng-container matColumnDef="category">
-            <th mat-header-cell *matHeaderCellDef>Category</th>
-            <td mat-cell *matCellDef="let m">
-              <span class="category-badge">{{ m.category }}</span>
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="description">
-            <th mat-header-cell *matHeaderCellDef>Description</th>
-            <td mat-cell *matCellDef="let m">{{ truncate(m.description, 120) }}</td>
-          </ng-container>
-          <ng-container matColumnDef="keywords">
-            <th mat-header-cell *matHeaderCellDef>Keywords</th>
-            <td mat-cell *matCellDef="let m" class="keywords-cell">{{ m.keywords || '-' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="relatedTables">
-            <th mat-header-cell *matHeaderCellDef>Related</th>
-            <td mat-cell *matCellDef="let m">{{ m.relatedTables || '-' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="priority">
-            <th mat-header-cell *matHeaderCellDef>Priority</th>
-            <td mat-cell *matCellDef="let m" class="priority-cell">{{ m.priority ?? '-' }}</td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="tableMappingColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: tableMappingColumns;"></tr>
-        </table>
+    <h2>Extracted Tables</h2>
+    @if (result.extractedTables.length > 0) {
+      <mat-card class="extracted-tables-card">
+        <mat-card-content>
+          <div class="extracted-tables-list">
+            @for (table of result.extractedTables; track table) {
+              <span class="table-chip">{{ table }}</span>
+            }
+          </div>
+          <p class="tables-hint">These tables would be pre-fetched for schema verification during agentic query execution.</p>
+        </mat-card-content>
       </mat-card>
     } @else {
       <mat-card>
         <mat-card-content class="empty-state">
           <mat-icon>search_off</mat-icon>
-          <p>No table mappings found for this query</p>
+          <p>No known tables extracted from document results</p>
         </mat-card-content>
       </mat-card>
     }

@@ -6,22 +6,14 @@ import { environment } from '../../environments/environment';
 export interface RagDebugResponse {
   success: boolean;
   query: string;
-  tableMappings: TableMappingResult[];
+  ragAvailable: boolean;
   businessRules: BusinessRuleResult[];
-  tableMappingCount: number;
   businessRuleCount: number;
+  extractedTables: string[];
+  extractedTableCount: number;
+  knownTableCount: number;
   searchType: string;
   executionTimeMs: number;
-}
-
-export interface TableMappingResult {
-  tableName: string;
-  category: string;
-  description: string;
-  keywords: string;
-  relatedTables: string;
-  priority: number;
-  productCode: string;
 }
 
 export interface BusinessRuleResult {

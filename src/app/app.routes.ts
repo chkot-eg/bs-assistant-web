@@ -28,11 +28,6 @@ export const routes: Routes = [
       .then(m => m.DocumentManagerComponent)
   },
   {
-    path: 'security/table-mappings',
-    loadComponent: () => import('./components/table-mappings/table-mapping-manager.component')
-      .then(m => m.TableMappingManagerComponent)
-  },
-  {
     path: 'security/metrics',
     loadComponent: () => import('./components/metrics/metrics-dashboard.component')
       .then(m => m.MetricsDashboardComponent)
