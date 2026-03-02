@@ -43,6 +43,11 @@ export const routes: Routes = [
       .then(m => m.SessionManagerComponent)
   },
   {
+    path: 'security/rag-debug',
+    loadComponent: () => import('./components/rag-debug/rag-debug.component')
+      .then(m => m.RagDebugComponent)
+  },
+  {
     path: 'security/health',
     loadComponent: () => import('./components/health/health-dashboard.component')
       .then(m => m.HealthDashboardComponent)

@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { ChatToggleService, ChatState, ChatSize } from '../../services/chat-toggle.service';
 import { ChatService } from '../../services/chat.service';
@@ -51,7 +52,8 @@ import { environment } from '../../../environments/environment';
     MatTooltipModule,
     MatSelectModule,
     CdkDrag,
-    CdkDragHandle
+    CdkDragHandle,
+    MatSnackBarModule
   ],
   templateUrl: './floating-chat-panel.component.html',
   styleUrls: ['./floating-chat-panel.component.scss'],
@@ -173,8 +175,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private sessionService: SessionService,
     private sanitizer: DomSanitizer,
     private featureTourService: FeatureTourService,
-    private tokenTrackingService: TokenTrackingService
-    private ttsService: TtsService
+    private tokenTrackingService: TokenTrackingService,
+    private ttsService: TtsService,
+    private snackBar: MatSnackBar
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -359,6 +362,12 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       this.currentResponseUsesContext = false;
       this.pendingSynthesizedAnswer = null;
 
+      // Cancel any previous SSE subscription before starting a new one
+      if (this.streamSubscription) {
+        this.streamSubscription.unsubscribe();
+        this.streamSubscription = null;
+      }
+
       // Try SSE streaming
       this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext)
         .subscribe({
@@ -503,10 +512,21 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
             .replace(/\\t/g, '\t')
             .replace(/\\"/g, '"');
 
-          // Parse MCP markdown into structured content + metadata
-          const parsed = parseMcpResponseText(completeContent);
-          completeContent = parsed.content;
-          completeMetadata = { ...completeMetadata, ...parsed.metadata };
+          // Check if synthesized answer is available — if so, skip expensive MCP parsing
+          const synthesizedEarly = this.pendingSynthesizedAnswer
+            || event.data.agenticMetadata?.synthesizedAnswer
+            || null;
+
+          if (synthesizedEarly) {
+            // Synthesized answer replaces content; only need metadata from agenticMetadata
+            completeContent = synthesizedEarly;
+            completeMetadata.synthesizedAnswer = synthesizedEarly;
+          } else {
+            // No synthesized answer — parse MCP markdown for table + metadata
+            const parsed = parseMcpResponseText(completeContent);
+            completeContent = parsed.content;
+            completeMetadata = { ...completeMetadata, ...parsed.metadata };
+          }
 
           // Merge agenticMetadata for SQL data (it coexists alongside MCP result)
           if (event.data.agenticMetadata) {
@@ -600,13 +620,16 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
           }
         }
 
-        // Resolve synthesized answer: prefer synthesis SSE event, fallback to agenticMetadata
-        const synthesized = this.pendingSynthesizedAnswer
-          || event.data.agenticMetadata?.synthesizedAnswer
-          || null;
-        if (synthesized) {
-          completeMetadata.synthesizedAnswer = synthesized;
-          completeContent = synthesized + '\n\n' + completeContent;
+        // Clear pending synthesized answer (already consumed in first branch if applicable)
+        if (!completeMetadata.synthesizedAnswer) {
+          // Handle synthesized answer for non-MCP branches (second/third/fourth branch)
+          const synthesized = this.pendingSynthesizedAnswer
+            || event.data.agenticMetadata?.synthesizedAnswer
+            || null;
+          if (synthesized) {
+            completeMetadata.synthesizedAnswer = synthesized;
+            completeContent = synthesized;
+          }
         }
         this.pendingSynthesizedAnswer = null;
 
@@ -631,45 +654,18 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     }
   }
 
-  private handleSseError(error: any, originalMessage: string, inputElement?: HTMLElement): void {
+  private handleSseError(error: any, _originalMessage: string, inputElement?: HTMLElement): void {
     console.warn('SSE streaming failed:', error);
     this.isStreaming = false;
     this.streamingSteps = [];
+    this.streamSubscription = null;
 
-    // NOTE: Chat limit errors come as event:limit (handled in handleSseEvent),
-    // not as SSE error events. Fallback to POST for connection errors.
+    const errorText = error?.error || error?.message || 'Connection lost. Please try sending your message again.';
+    this.chatService.setLoading(false);
+    this.chatService.addSystemMessage(errorText, 'text', true);
 
-    // Fallback to POST-based flow for other errors
-    this.chatService.sendMessage(originalMessage, this.useContext).subscribe({
-      next: (response) => {
-        // Check for chat limit warnings in POST response
-        if (response.hasWarning) {
-          this.hasWarning = true;
-          this.warningMessage = response.warningMessage || '';
-          this.messageCount = response.messageCount || 0;
-          this.isBlocked = response.isBlocked || false;
-        } else if (response.messageCount !== undefined) {
-          this.messageCount = response.messageCount;
-        }
-        this.scrollToBottom();
-        if (inputElement) { inputElement.focus(); }
-      },
-      error: (err) => {
-        console.error('POST fallback also failed:', err);
-
-        // Check POST error for chat limit
-        const postLimitInfo = this.chatService.getChatLimitInfo(err.error || err);
-        if (postLimitInfo) {
-          this.hasWarning = postLimitInfo.hasWarning;
-          this.warningMessage = postLimitInfo.warningMessage;
-          this.messageCount = postLimitInfo.messageCount;
-          this.isBlocked = postLimitInfo.isBlocked;
-        }
-
-        this.scrollToBottom();
-        if (inputElement) { inputElement.focus(); }
-      }
-    });
+    this.scrollToBottom();
+    if (inputElement) { inputElement.focus(); }
   }
 
   stopRequest(): void {
@@ -1230,13 +1226,6 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     }
   }
 
-  onKeyPress(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
-    }
-  }
-
   onKeyDown(event: KeyboardEvent): void {
     // Handle Enter key - send message if not holding Shift
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -1445,12 +1434,106 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   renderMarkdown(content: string): SafeHtml {
     if (!content) return '';
-    const html = marked.parse(content, { async: false }) as string;
+    let html = marked.parse(content, { async: false }) as string;
+
+    // Inject copy button into <pre> blocks
+    html = html.replace(
+      /<pre>/g,
+      '<pre class="copyable-block"><button class="copy-btn" title="Copy code" type="button">' +
+      '<span class="copy-icon">content_copy</span></button>'
+    );
+
+    // Wrap <table> blocks (no inline copy button — handled by copy-message-btn)
+    html = html.replace(/<table>/g, '<div class="table-wrapper"><table>');
+    html = html.replace(/<\/table>/g, '</table></div>');
+
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
   getLanguages(): { [key: string]: string } {
     return this.voiceService.getSupportedLanguages();
+  }
+
+  // --- Copy-to-clipboard for tables and code blocks ---
+
+  @HostListener('click', ['$event'])
+  onCopyClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const copyBtn = target.closest('.copy-btn') as HTMLElement;
+    if (!copyBtn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    let textToCopy = '';
+    const pre = copyBtn.closest('pre');
+    if (pre) {
+      const clone = pre.cloneNode(true) as HTMLElement;
+      clone.querySelector('.copy-btn')?.remove();
+      textToCopy = clone.textContent || '';
+    }
+
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const icon = copyBtn.querySelector('.copy-icon');
+        if (icon) {
+          icon.textContent = 'check';
+          setTimeout(() => icon.textContent = 'content_copy', 2000);
+        }
+        this.snackBar.open('Copied to clipboard', '', {
+          duration: 2000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+          panelClass: ['copy-snackbar']
+        });
+      });
+    }
+  }
+
+  private extractTableText(table: HTMLTableElement): string {
+    const rows: string[] = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const cells: string[] = [];
+      tr.querySelectorAll('th, td').forEach(cell => cells.push((cell.textContent || '').trim()));
+      rows.push(cells.join('\t'));
+    });
+    return rows.join('\n');
+  }
+
+  // --- Copy table from assistant message ---
+
+  copyMessage(event: MouseEvent, content: string): void {
+    const btn = (event.target as HTMLElement).closest('.copy-message-btn') as HTMLElement;
+
+    // Parse markdown to HTML, then extract only table content
+    const tmp = document.createElement('div');
+    tmp.innerHTML = (marked.parse(content, { async: false }) as string);
+
+    const tables = tmp.querySelectorAll('table');
+    let textToCopy = '';
+    if (tables.length > 0) {
+      const parts: string[] = [];
+      tables.forEach(table => parts.push(this.extractTableText(table as HTMLTableElement)));
+      textToCopy = parts.join('\n\n');
+    } else {
+      // Fallback: copy full plain text if no tables
+      textToCopy = (tmp.textContent || tmp.innerText || '').trim();
+    }
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      // Swap icon to checkmark temporarily
+      const icon = btn?.querySelector('.copy-icon');
+      if (icon) {
+        icon.textContent = 'check';
+        setTimeout(() => icon.textContent = 'content_copy', 2000);
+      }
+      this.snackBar.open('Copied to clipboard', '', {
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+        panelClass: ['copy-snackbar']
+      });
+    });
   }
 
   // Contact Support methods

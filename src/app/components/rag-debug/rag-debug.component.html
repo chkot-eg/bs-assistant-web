@@ -1,0 +1,152 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>RAG Debug</h1>
+    <span class="header-subtitle">Inspect table mappings & business rules retrieved for any query</span>
+  </div>
+</div>
+
+<!-- Query Input -->
+<div class="query-input-section">
+  <mat-form-field appearance="outline" class="query-field">
+    <mat-label>Query</mat-label>
+    <input matInput [(ngModel)]="query" placeholder="e.g., show top 5 customers by sales" (keydown)="onKeydown($event)">
+    <mat-icon matPrefix>search</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="topk-field">
+    <mat-label>Top K</mat-label>
+    <mat-select [(ngModel)]="topK">
+      @for (opt of topKOptions; track opt) {
+        <mat-option [value]="opt">{{ opt }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" (click)="executeLookup()" [disabled]="isLoading || !query.trim()">
+    <mat-icon>science</mat-icon>
+    Inspect
+  </button>
+</div>
+
+<!-- Loading -->
+@if (isLoading) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Performing RAG lookup...</p>
+  </div>
+}
+
+<!-- Error -->
+@if (errorMessage) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </mat-card-content>
+  </mat-card>
+}
+
+<!-- Results -->
+@if (result) {
+  <!-- Metadata Bar -->
+  <mat-card class="results-meta">
+    <mat-card-content>
+      <span class="search-type-badge" [class.semantic]="result.searchType === 'semantic'" [class.keyword]="result.searchType === 'keyword'">
+        {{ result.searchType }}
+      </span>
+      <span class="meta-item">
+        <mat-icon>timer</mat-icon>
+        {{ result.executionTimeMs }}ms
+      </span>
+      <span class="meta-item">
+        <mat-icon>table_chart</mat-icon>
+        {{ result.tableMappingCount }} table(s)
+      </span>
+      <span class="meta-item">
+        <mat-icon>menu_book</mat-icon>
+        {{ result.businessRuleCount }} rule(s)
+      </span>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Table Mappings -->
+  <div class="section">
+    <h2>Table Mappings</h2>
+    @if (result.tableMappings.length > 0) {
+      <mat-card class="table-card">
+        <table mat-table [dataSource]="result.tableMappings" class="mapping-table">
+          <ng-container matColumnDef="tableName">
+            <th mat-header-cell *matHeaderCellDef>Table</th>
+            <td mat-cell *matCellDef="let m" class="table-name-cell">{{ m.tableName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef>Category</th>
+            <td mat-cell *matCellDef="let m">
+              <span class="category-badge">{{ m.category }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Description</th>
+            <td mat-cell *matCellDef="let m">{{ truncate(m.description, 120) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="keywords">
+            <th mat-header-cell *matHeaderCellDef>Keywords</th>
+            <td mat-cell *matCellDef="let m" class="keywords-cell">{{ m.keywords || '-' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="relatedTables">
+            <th mat-header-cell *matHeaderCellDef>Related</th>
+            <td mat-cell *matCellDef="let m">{{ m.relatedTables || '-' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef>Priority</th>
+            <td mat-cell *matCellDef="let m" class="priority-cell">{{ m.priority ?? '-' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="tableMappingColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: tableMappingColumns;"></tr>
+        </table>
+      </mat-card>
+    } @else {
+      <mat-card>
+        <mat-card-content class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <p>No table mappings found for this query</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+
+  <!-- Business Rules -->
+  <div class="section">
+    <h2>Business Rules</h2>
+    @if (result.businessRules.length > 0) {
+      @for (rule of result.businessRules; track rule.sourceDocument + rule.chunkIndex) {
+        <mat-card class="rule-card">
+          <mat-card-content>
+            <div class="rule-header">
+              <span class="rule-source">
+                <mat-icon>description</mat-icon>
+                {{ rule.sourceDocument }}
+              </span>
+              <span class="category-chip">{{ rule.category }}</span>
+              <span class="score-badge" [ngClass]="getScoreClass(rule.similarityScore)">
+                {{ formatScore(rule.similarityScore) }}
+              </span>
+              @if (rule.chunkIndex > 0) {
+                <span class="chunk-label">Chunk #{{ rule.chunkIndex }}</span>
+              }
+            </div>
+            <pre class="rule-content">{{ rule.content }}</pre>
+          </mat-card-content>
+        </mat-card>
+      }
+    } @else {
+      <mat-card>
+        <mat-card-content class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <p>No business rules found for this query</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

@@ -158,6 +158,10 @@
         }
         <div class="message-bubble">
           @if (message.role === 'assistant' && !message.isError) {
+            <button class="copy-message-btn" title="Copy response" type="button"
+                    (click)="copyMessage($event, message.content)">
+              <span class="copy-icon">content_copy</span>
+            </button>
             <div class="message-content markdown-content"
                  [innerHTML]="renderMarkdown(message.content)">
             </div>
@@ -316,6 +320,8 @@
             @if (message.role === 'assistant' && !message.isError && isTtsSupported()) {
               <button mat-icon-button
                       class="tts-btn"
+                      [class.active]="(ttsState$ | async)?.currentMessageId === message.id
+                                      && ((ttsState$ | async)?.isSynthesizing || (ttsState$ | async)?.isPlaying)"
                       (click)="toggleTts(message)"
                       [matTooltip]="(ttsState$ | async)?.currentMessageId === message.id
                         ? ((ttsState$ | async)?.isPlaying ? 'Stop speaking' : 'Preparing...')
