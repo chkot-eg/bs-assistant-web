@@ -267,7 +267,7 @@ button:focus,
   // --- Tables ---
   table {
     border-collapse: collapse;
-    width: 100%;
+    min-width: 100%;
     margin: 8px 0;
     font-size: 12px;
   }
@@ -276,6 +276,7 @@ button:focus,
     border: 1px solid #dee2e6;
     padding: 6px 10px;
     text-align: left;
+    white-space: nowrap;
   }
 
   th {
@@ -365,6 +366,8 @@ button:focus,
   .table-wrapper {
     position: relative;
     margin: 8px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   pre.copyable-block {
