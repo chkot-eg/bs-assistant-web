@@ -158,6 +158,10 @@
         }
         <div class="message-bubble">
           @if (message.role === 'assistant' && !message.isError) {
+            <button class="copy-message-btn" title="Copy response" type="button"
+                    (click)="copyMessage($event, message.content)">
+              <span class="copy-icon">content_copy</span>
+            </button>
             <div class="message-content markdown-content"
                  [innerHTML]="renderMarkdown(message.content)">
             </div>
@@ -310,8 +314,31 @@
             </div>
           }
 
-          <div class="message-time">
-            {{ message.timestamp | date:'HH:mm' }}
+          <div class="message-footer">
+            <span class="message-time-text">{{ message.timestamp | date:'HH:mm' }}</span>
+
+            @if (message.role === 'assistant' && !message.isError && isTtsSupported()) {
+              <button mat-icon-button
+                      class="tts-btn"
+                      [class.active]="(ttsState$ | async)?.currentMessageId === message.id
+                                      && ((ttsState$ | async)?.isSynthesizing || (ttsState$ | async)?.isPlaying)"
+                      (click)="toggleTts(message)"
+                      [matTooltip]="(ttsState$ | async)?.currentMessageId === message.id
+                        ? ((ttsState$ | async)?.isPlaying ? 'Stop speaking' : 'Preparing...')
+                        : 'Read aloud'"
+                      [disabled]="(ttsState$ | async)?.isSynthesizing
+                                  && (ttsState$ | async)?.currentMessageId === message.id">
+                @if ((ttsState$ | async)?.isSynthesizing
+                     && (ttsState$ | async)?.currentMessageId === message.id) {
+                  <mat-icon class="tts-loading">hourglass_empty</mat-icon>
+                } @else if ((ttsState$ | async)?.isPlaying
+                            && (ttsState$ | async)?.currentMessageId === message.id) {
+                  <mat-icon class="tts-active">stop_circle</mat-icon>
+                } @else {
+                  <mat-icon>volume_up</mat-icon>
+                }
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -497,12 +524,19 @@
 
       <!-- Voice Status Messages -->
     @if ((voiceState$ | async)?.isRecording) {
-       <div class="voice-status-message recording">
+      <div class="voice-status-message recording">
         <div class="recording-indicator"></div>
         <div class="recording-content">
-          <span class="recording-title">Listening... Speak now</span>
-          <span class="voice-commands">Say "ask Fabrioo" to send</span>
+          <span class="recording-title">Recording... Press mic to stop</span>
+          <span class="voice-commands">Say "ask Fabrioo" to auto-send after transcription</span>
         </div>
+      </div>
+    }
+
+    @if ((voiceState$ | async)?.isProcessing) {
+      <div class="voice-status-message recording">
+        <mat-icon class="spinning">sync</mat-icon>
+        <span>Transcribing audio...</span>
       </div>
     }
 
@@ -518,14 +552,19 @@
 
     <!-- Input Field with Enhanced Features -->
     <div class="input-container">
-      <!-- Voice Recording Button -->  
+      <!-- Voice Recording Button -->
       <button mat-icon-button
               (click)="toggleVoiceRecording()"
-              [matTooltip]="(voiceState$ | async)?.isRecording ? 'Stop recording' : 'Start voice recording'"
+              [matTooltip]="(voiceState$ | async)?.isRecording ? 'Stop & transcribe' : (voiceState$ | async)?.isProcessing ? 'Transcribing...' : 'Start voice recording'"
               [class.voice-recording]="(voiceState$ | async)?.isRecording"
+              [disabled]="(voiceState$ | async)?.isProcessing"
               class="action-btn voice-btn"
               type="button">
-        <mat-icon>{{ (voiceState$ | async)?.isRecording ? 'mic' : 'mic_none' }}</mat-icon>
+        @if ((voiceState$ | async)?.isProcessing) {
+          <mat-icon class="tts-loading">hourglass_empty</mat-icon>
+        } @else {
+          <mat-icon>{{ (voiceState$ | async)?.isRecording ? 'mic' : 'mic_none' }}</mat-icon>
+        }
       </button>
       
       <mat-form-field appearance="outline" class="message-input" [class.loading]="!!(isLoading$ | async)">

@@ -26,7 +26,7 @@ export class ChatService {
 
   // Rate limiting
   private lastRequestTime = 0;
-  private readonly MIN_REQUEST_INTERVAL = 1000; // 1 second
+  private readonly MIN_REQUEST_INTERVAL = environment.minRequestIntervalMs;
 
   constructor(
     private http: HttpClient,
@@ -83,9 +83,9 @@ export class ChatService {
 
     const body: QueryRequest = {
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5,
+      maxIterations: environment.maxIterations,
       includeDebugDetails: false
     };
 
@@ -110,7 +110,8 @@ export class ChatService {
               executionSteps: response.executionSteps?.map(step => ({
                 ...step,
                 sqlQuery: step.sqlQuery || extractSqlFromArguments(step.arguments)
-              }))
+              })),
+              synthesizedAnswer: response.synthesizedAnswer
             };
             const assistantMessage: Message = {
               id: this.generateMessageId(),
@@ -148,37 +149,52 @@ export class ChatService {
       return `Error: ${response.error}`;
     }
 
-    // If data is a string (already formatted by the agentic service), use as-is
+    // Priority 1: Use synthesizedAnswer (complete formatted response from LLM)
+    if (response.synthesizedAnswer) {
+      return response.synthesizedAnswer;
+    }
+
+    // Priority 2: If data is a string (pre-formatted by backend), use as-is
     if (typeof response.data === 'string') {
       return response.data;
     }
 
+    // Priority 3: Handle MCP envelope {content: [{type: "text", text: "..."}]}
+    if (response.data?.content && Array.isArray(response.data.content)) {
+      const textParts = response.data.content
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text);
+      if (textParts.length > 0) {
+        let text = textParts.join('\n');
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed.synthesizedAnswer) return parsed.synthesizedAnswer;
+          if (parsed.formattedResponse) return parsed.formattedResponse;
+        } catch { /* not JSON, use raw text */ }
+        return text;
+      }
+    }
+
+    // Priority 4: Array of rows — improved fallback
     const parts: string[] = [];
-
-    // If data is an array of rows
     if (Array.isArray(response.data) && response.data.length > 0) {
-      parts.push(`Found ${response.rowCount ?? response.data.length} results.`);
+      const count = response.rowCount ?? response.data.length;
+      parts.push(`Here are the ${count} results:\n`);
 
-      // Show first few rows as a preview
-      const preview = response.data.slice(0, 5);
+      const preview = response.data.slice(0, 20);
       const headers = response.columns ?? Object.keys(preview[0]);
-      parts.push('\n| ' + headers.join(' | ') + ' |');
+      parts.push('| ' + headers.join(' | ') + ' |');
       parts.push('| ' + headers.map(() => '---').join(' | ') + ' |');
       for (const row of preview) {
         parts.push('| ' + headers.map(h => String(row[h] ?? '')).join(' | ') + ' |');
       }
-
-      if (response.data.length > 5) {
-        parts.push(`\n... and ${response.data.length - 5} more rows.`);
+      if (response.data.length > 20) {
+        parts.push(`\n... and ${response.data.length - 20} more rows.`);
       }
     } else if (response.data) {
       parts.push(JSON.stringify(response.data, null, 2));
     } else {
       parts.push('Query executed successfully (no data returned).');
-    }
-
-    if (response.executedSql) {
-      parts.push(`\nSQL: ${response.executedSql}`);
     }
 
     return parts.join('\n');
@@ -270,10 +286,14 @@ export class ChatService {
 
     return this.agenticStreamService.connectStream({
       query: content,
-      library: 'ADB800',
+      library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: 5
+      maxIterations: environment.maxIterations
     });
+  }
+
+  getMessages(): Message[] {
+    return this.messagesSubject.value;
   }
 
   addStreamingResult(content: string, metadata: MessageMetadata, queryResponse?: QueryResponse): void {
@@ -299,13 +319,14 @@ export class ChatService {
     this.addMessage(userMessage);
   }
 
-  addSystemMessage(content: string, contentType: string = 'text'): void {
+  addSystemMessage(content: string, contentType: string = 'text', isError: boolean = false): void {
     const message: Message = {
       id: this.generateMessageId(),
       role: 'assistant',
       content: content,
       timestamp: new Date(),
-      contentType: contentType as any
+      contentType: contentType as any,
+      isError: isError
     };
     this.addMessage(message);
   }

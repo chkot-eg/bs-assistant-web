@@ -30,9 +30,9 @@ export class SidebarComponent {
     { label: 'Dashboard', route: '/security/dashboard', icon: 'dashboard' },
     { label: 'Tables', route: '/security/tables', icon: 'table_chart' },
     { label: 'Documents', route: '/security/documents', icon: 'description' },
-    { label: 'Mappings', route: '/security/table-mappings', icon: 'schema' },
     { label: 'Metrics', route: '/security/metrics', icon: 'analytics' },
     { label: 'Sessions', route: '/security/sessions', icon: 'forum' },
+    { label: 'RAG Debug', route: '/security/rag-debug', icon: 'bug_report' },
     { label: 'Health', route: '/security/health', icon: 'monitor_heart' }
   ];
 

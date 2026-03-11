@@ -24,8 +24,6 @@ export class HealthService {
         .pipe(catchError(e => down('AgenticStreamService', e))),
       documents: this.http.get<HealthStatus>(`${this.apiUrl}/api/v1/documents/health`)
         .pipe(catchError(e => down('DocumentsService', e))),
-      tableMappings: this.http.get<HealthStatus>(`${this.apiUrl}/api/v1/table-mappings/health`)
-        .pipe(catchError(e => down('TableMappingService', e))),
       metrics: this.http.get<HealthStatus>(`${this.apiUrl}/api/v1/metrics/health`)
         .pipe(catchError(e => down('MetricsService', e)))
     });

@@ -31,7 +31,7 @@ export class DashboardComponent implements OnInit {
     { title: 'Documents', description: 'Manage uploaded documents', icon: 'description', route: '/security/documents', color: '#4CAF50' },
     { title: 'Metrics', description: 'View query performance metrics', icon: 'analytics', route: '/security/metrics', color: '#FF9800' },
     { title: 'Sessions', description: 'Manage conversation sessions', icon: 'forum', route: '/security/sessions', color: '#9C27B0' },
-    { title: 'Table Mappings', description: 'Configure table semantic mappings', icon: 'account_tree', route: '/security/table-mappings', color: '#00BCD4' },
+    { title: 'RAG Debug', description: 'Inspect RAG document context & extracted tables', icon: 'bug_report', route: '/security/rag-debug', color: '#607D8B' },
     { title: 'Health', description: 'Monitor service health status', icon: 'monitor_heart', route: '/security/health', color: '#F44336' }
   ];
 
