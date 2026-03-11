@@ -55,13 +55,10 @@ export class VoiceService {
   // ---------------------------------------------------------------------------
 
   getDefaultLanguage(): string {
-    const browserLang = navigator.language || 'en-US';
-    if (this.supportedLanguages[browserLang]) return browserLang;
-    const prefix = browserLang.split('-')[0];
-    return Object.keys(this.supportedLanguages).find(k => k.startsWith(prefix + '-')) ?? 'en-US';
+    return '';
   }
 
-  startRecording(language: string = 'en-US'): void {
+  startRecording(language: string = ''): void {
     if (this.voiceState.value.isRecording) return;
 
     if (!this.sttService.isSupported()) {
@@ -161,7 +158,8 @@ export class VoiceService {
     const blob = new Blob(this.audioChunks, { type: mimeType });
     this.audioChunks = [];
 
-    this.sttService.transcribe(blob, language).subscribe({
+    // Pass language only if explicitly set; otherwise let Whisper auto-detect.
+    this.sttService.transcribe(blob, language || undefined).subscribe({
       next: (text) => this.handleTranscript(text),
       error: (err) => {
         console.error('[VoiceService] Transcription error:', err);
