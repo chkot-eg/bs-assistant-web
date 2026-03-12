@@ -1,69 +1,72 @@
-<div class="page-header">
-  <div class="header-title">
-    <h1>Service Health</h1>
-    <span class="header-subtitle">Monitor backend service status</span>
-  </div>
-  <div class="header-actions">
-    @if (lastChecked) {
-      <span class="last-checked">Last checked: {{ lastChecked | date:'mediumTime' }}</span>
-    }
-    <button mat-flat-button color="primary" (click)="refresh()" [disabled]="isLoading">
-      <mat-icon>refresh</mat-icon>
-      Refresh
-    </button>
-  </div>
-</div>
+<eg-page>
+  <eg-header variant="page">
+    <eg-header-title>Service Health</eg-header-title>
+    <eg-header-actions>
+      @if (lastChecked) {
+        <span class="last-checked">Last checked: {{ lastChecked | date:'mediumTime' }}</span>
+      }
+      <eg-button variant="primary" size="small" (clicked)="refresh()" [disabled]="isLoading">
+        <eg-icon name="refresh" size="small"></eg-icon>
+        Refresh
+      </eg-button>
+    </eg-header-actions>
+  </eg-header>
 
-@if (isLoading && services.length === 0) {
-  <div class="loading-container">
-    <mat-spinner diameter="48"></mat-spinner>
-    <p>Checking service health...</p>
-  </div>
-} @else {
-  <div class="summary-strip">
-    <div class="summary-item up">
-      <mat-icon>check_circle</mat-icon>
-      <span>{{ getUpCount() }} Healthy</span>
-    </div>
-    <div class="summary-item down">
-      <mat-icon>error</mat-icon>
-      <span>{{ getDownCount() }} Down</span>
-    </div>
-    <div class="summary-item total">
-      <mat-icon>dns</mat-icon>
-      <span>{{ services.length }} Services</span>
-    </div>
-  </div>
+  <eg-page-body>
+    <eg-page-content>
+      @if (isLoading && services.length === 0) {
+        <div class="loading-container">
+          <eg-progress-spinner [diameter]="48"></eg-progress-spinner>
+          <p>Checking service health...</p>
+        </div>
+      } @else {
+        <div class="summary-strip">
+          <div class="summary-item up">
+            <eg-icon name="check_circle" size="small"></eg-icon>
+            <span>{{ getUpCount() }} Healthy</span>
+          </div>
+          <div class="summary-item down">
+            <eg-icon name="error" size="small"></eg-icon>
+            <span>{{ getDownCount() }} Down</span>
+          </div>
+          <div class="summary-item total">
+            <eg-icon name="dns" size="small"></eg-icon>
+            <span>{{ services.length }} Services</span>
+          </div>
+        </div>
 
-  <div class="health-grid">
-    @for (svc of services; track svc.key) {
-      <mat-card [class.status-up]="svc.status.status === 'UP'" [class.status-down]="svc.status.status === 'DOWN'">
-        <mat-card-content>
-          <div class="status-icon-wrapper">
-            @if (svc.status.status === 'UP') {
-              <mat-icon class="status-icon up">check_circle</mat-icon>
-            } @else {
-              <mat-icon class="status-icon down">error</mat-icon>
-            }
-          </div>
-          <div class="service-info">
-            <h3>{{ getServiceDisplayName(svc.key) }}</h3>
-            <span class="status-badge" [class.up]="svc.status.status === 'UP'" [class.down]="svc.status.status === 'DOWN'">
-              {{ svc.status.status }}
-            </span>
-          </div>
-          @if (svc.status.timestamp) {
-            <div class="service-timestamp">
-              {{ svc.status.timestamp | date:'medium' }}
-            </div>
+        <div class="health-grid">
+          @for (svc of services; track svc.key) {
+            <eg-box [class.status-up]="svc.status.status === 'UP'" [class.status-down]="svc.status.status === 'DOWN'">
+              <div class="health-card-content">
+                <div class="status-icon-wrapper">
+                  @if (svc.status.status === 'UP') {
+                    <eg-icon name="check_circle" size="large" class="status-icon up"></eg-icon>
+                  } @else {
+                    <eg-icon name="error" size="large" class="status-icon down"></eg-icon>
+                  }
+                </div>
+                <div class="service-info">
+                  <h3>{{ getServiceDisplayName(svc.key) }}</h3>
+                  <eg-label [type]="svc.status.status === 'UP' ? 'success' : 'danger'">
+                    {{ svc.status.status }}
+                  </eg-label>
+                </div>
+                @if (svc.status.timestamp) {
+                  <div class="service-timestamp">
+                    {{ svc.status.timestamp | date:'medium' }}
+                  </div>
+                }
+                @if (svc.status.status === 'DOWN' && svc.status['error']) {
+                  <div class="error-detail">
+                    {{ svc.status['error'] }}
+                  </div>
+                }
+              </div>
+            </eg-box>
           }
-          @if (svc.status.status === 'DOWN' && svc.status['error']) {
-            <div class="error-detail">
-              {{ svc.status['error'] }}
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
-    }
-  </div>
-}
+        </div>
+      }
+    </eg-page-content>
+  </eg-page-body>
+</eg-page>

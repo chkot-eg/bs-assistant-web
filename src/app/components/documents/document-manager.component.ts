@@ -1,27 +1,48 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatPaginatorModule } from '@angular/material/paginator';
+import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DocumentService } from '../../services/document.service';
 import { DocumentDto, DocumentStatsResponse, DocumentSearchResult } from '../../models/document.model';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgProgressBarModule,
+  EgBoxModule,
+  EgSectionModule,
+  EgKpiModule,
+  EgTabsModule,
+  EgFormFieldModule,
+  EgTableModule,
+  EgLabelModule,
+  EgChipModule,
+} from '../../shared/eg-mock';
+import { EgTableColumn } from '../../shared/eg-mock/modules/eg-table.module';
 
 @Component({
   selector: 'app-document-manager',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatTableModule, MatTabsModule, MatFormFieldModule, MatInputModule,
-    MatChipsModule, MatProgressBarModule, MatProgressSpinnerModule, MatPaginatorModule
+    CommonModule,
+    ReactiveFormsModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgProgressBarModule,
+    EgBoxModule,
+    EgSectionModule,
+    EgKpiModule,
+    EgTabsModule,
+    EgFormFieldModule,
+    EgTableModule,
+    EgLabelModule,
+    EgChipModule,
   ],
   templateUrl: './document-manager.component.html',
   styleUrls: ['./document-manager.component.scss']
@@ -34,9 +55,18 @@ export class DocumentManagerComponent implements OnInit {
   isUploading = false;
   isSearching = false;
   isProcessing = false;
-  searchQuery = '';
   selectedTabIndex = 0;
-  docColumns = ['fileName', 'contentType', 'fileSize', 'category', 'processingStatus', 'createdAt', 'actions'];
+
+  searchControl = new FormControl('');
+
+  docTableColumns: EgTableColumn[] = [
+    { id: 'fileName', label: 'File Name' },
+    { id: 'contentType', label: 'Type' },
+    { id: 'fileSize', label: 'Size' },
+    { id: 'category', label: 'Category' },
+    { id: 'processingStatus', label: 'Status' },
+    { id: 'createdAt', label: 'Created' },
+  ];
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
@@ -127,9 +157,10 @@ export class DocumentManagerComponent implements OnInit {
   }
 
   searchDocuments(): void {
-    if (!this.searchQuery.trim()) return;
+    const query = this.searchControl.value?.trim();
+    if (!query) return;
     this.isSearching = true;
-    this.documentService.search({ query: this.searchQuery.trim() }).subscribe({
+    this.documentService.search({ query }).subscribe({
       next: (response) => {
         this.searchResults = response.results || [];
         this.isSearching = false;
@@ -141,7 +172,7 @@ export class DocumentManagerComponent implements OnInit {
   }
 
   clearSearch(): void {
-    this.searchQuery = '';
+    this.searchControl.setValue('');
     this.searchResults = [];
   }
 
@@ -156,8 +187,8 @@ export class DocumentManagerComponent implements OnInit {
       case 'COMPLETED': return 'success';
       case 'PENDING': return 'warning';
       case 'PROCESSING': return 'info';
-      case 'FAILED': return 'error';
-      default: return '';
+      case 'FAILED': return 'danger';
+      default: return 'default';
     }
   }
 }

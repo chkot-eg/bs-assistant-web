@@ -5,13 +5,13 @@
       <div class="nav-header">Navigation</div>
       @for (nav of navItems; track nav.route) {
         <a [routerLink]="nav.route" routerLinkActive="active" class="nav-item">
-          <mat-icon class="nav-icon">{{ nav.icon }}</mat-icon>
+          <eg-icon [name]="nav.icon" size="small" class="nav-icon"></eg-icon>
           <span class="nav-label">{{ nav.label }}</span>
         </a>
       }
     </div>
 
-    <div class="nav-divider"></div>
+    <eg-divider></eg-divider>
   }
 
   <!-- ERP Shortcuts -->
@@ -26,6 +26,6 @@
   </div>
 
   <div class="sidebar-footer">
-    <button class="tilbake-btn">Tilbake</button>
+    <eg-button variant="warning" size="medium" class="tilbake-btn-wrapper">Tilbake</eg-button>
   </div>
 </div>

@@ -5,32 +5,6 @@
   overflow-y: auto;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .header-title {
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin: 0;
-    }
-    .header-subtitle {
-      font-size: 13px;
-      color: #6C757D;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-}
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -53,7 +27,7 @@
   padding: 80px 0;
   color: #6C757D;
 
-  mat-icon {
+  eg-icon {
     font-size: 48px;
     width: 48px;
     height: 48px;
@@ -79,8 +53,8 @@
   margin-bottom: 12px;
 }
 
-mat-accordion {
-  mat-expansion-panel {
+eg-accordion {
+  eg-accordion-panel {
     border-radius: 12px !important;
     margin-bottom: 8px;
     border: 1px solid #e0e0e0;
@@ -129,7 +103,7 @@ mat-accordion {
     font-size: 13px;
     color: #6C757D;
 
-    mat-icon {
+    eg-icon {
       font-size: 16px;
       width: 16px;
       height: 16px;

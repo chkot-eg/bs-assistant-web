@@ -1,10 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { HealthService } from '../../services/health.service';
@@ -13,10 +9,33 @@ import { DocumentService } from '../../services/document.service';
 import { AgenticMetrics, HealthStatus } from '../../models/metrics.model';
 import { DocumentStatsResponse } from '../../models/document.model';
 
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgKpiModule,
+  EgBoxModule,
+  EgSectionModule,
+} from '../../shared/eg-mock';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgKpiModule,
+    EgBoxModule,
+    EgSectionModule,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })

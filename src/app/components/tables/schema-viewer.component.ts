@@ -1,20 +1,39 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SchemaService } from '../../services/schema.service';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgBoxModule,
+  EgSectionModule,
+  EgFormFieldModule,
+  EgTableModule,
+  EgChipModule,
+} from '../../shared/eg-mock';
 
 @Component({
   selector: 'app-schema-viewer',
   standalone: true,
   imports: [
-    CommonModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatTableModule, MatChipsModule, MatProgressSpinnerModule
+    CommonModule,
+    ReactiveFormsModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgBoxModule,
+    EgSectionModule,
+    EgFormFieldModule,
+    EgTableModule,
+    EgChipModule,
   ],
   templateUrl: './schema-viewer.component.html',
   styleUrls: ['./schema-viewer.component.scss']
@@ -25,6 +44,8 @@ export class SchemaViewerComponent implements OnInit {
   displayedColumns: string[] = [];
   isLoading = false;
   error: string | null = null;
+
+  schemaColumns: { id: string; label: string; sortable?: boolean; width?: string }[] = [];
 
   constructor(
     private schemaService: SchemaService,
@@ -49,10 +70,8 @@ export class SchemaViewerComponent implements OnInit {
         let data: any[] | null = null;
 
         if (response.success && Array.isArray(response.data)) {
-          // Direct array format
           data = response.data;
         } else if (response.success && response.data?.content && Array.isArray(response.data.content)) {
-          // MCP tool response format: { content: [{ type: "text", text: "..." }] }
           const text = response.data.content
             .filter((c: any) => c.type === 'text')
             .map((c: any) => c.text)
@@ -60,7 +79,6 @@ export class SchemaViewerComponent implements OnInit {
           try {
             const parsed = JSON.parse(text);
             if (parsed.schemas && typeof parsed.schemas === 'object') {
-              // Format: { schemas: { TABLE_NAME: { columns: [...] } } }
               const schemaKey = this.tableName || Object.keys(parsed.schemas)[0];
               const schema = parsed.schemas[schemaKey] || Object.values(parsed.schemas)[0];
               if (schema && Array.isArray(schema.columns)) {
@@ -81,6 +99,15 @@ export class SchemaViewerComponent implements OnInit {
         if (data && data.length > 0) {
           this.columns = data;
           this.displayedColumns = response.columns || Object.keys(this.columns[0]);
+
+          this.schemaColumns = [
+            ...this.displayedColumns.map((col: string) => ({
+              id: col,
+              label: col,
+              sortable: true,
+            })),
+            { id: '_indicators', label: 'Flags', sortable: false },
+          ];
         } else {
           this.error = response.error || 'Failed to load schema';
         }

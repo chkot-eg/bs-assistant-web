@@ -5,43 +5,6 @@
   overflow-y: auto;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .back-button {
-      color: #6C757D;
-    }
-
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin: 0;
-      font-family: 'Courier New', monospace;
-    }
-
-    .header-subtitle {
-      font-size: 13px;
-      color: #6C757D;
-      display: block;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-}
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -56,40 +19,26 @@
   }
 }
 
-.error-card {
-  border-radius: 12px;
-  border: 1px solid #FFCDD2;
-  background: #FFF3F3;
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+  gap: 12px;
 
-  mat-card-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px;
-    gap: 12px;
+  eg-icon {
+    color: #F44336;
+  }
 
-    mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #F44336;
-    }
-
-    p {
-      color: #C62828;
-      font-size: 14px;
-      margin: 0;
-    }
+  p {
+    color: #C62828;
+    font-size: 14px;
+    margin: 0;
   }
 }
 
 .schema-summary {
   margin-bottom: 16px;
-
-  mat-card {
-    border-radius: 12px;
-    border: 1px solid #e0e0e0;
-  }
 
   .summary-items {
     display: flex;
@@ -104,43 +53,32 @@
     font-size: 14px;
     color: #1a1a1a;
 
-    mat-icon {
+    eg-icon {
       color: #2196F3;
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
     }
   }
 }
 
-.schema-table-card {
-  border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  overflow: hidden;
+eg-section {
+  eg-table {
+    ::ng-deep {
+      .eg-table th {
+        font-weight: 600;
+        color: #6C757D;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-  .table-container {
-    overflow-x: auto;
-  }
+      .eg-table td {
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+      }
 
-  table {
-    width: 100%;
-  }
-
-  th {
-    font-weight: 600;
-    color: #6C757D;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  td {
-    font-size: 13px;
-  }
-
-  .cell-content {
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
+      .eg-table-row:hover {
+        background: #f5f8ff;
+      }
+    }
   }
 }
 
@@ -176,10 +114,7 @@
   padding: 80px 0;
   color: #6C757D;
 
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
+  eg-icon {
     margin-bottom: 16px;
     color: #bdbdbd;
   }

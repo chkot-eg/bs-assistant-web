@@ -120,15 +120,12 @@
     color: #1565C0;
     font-weight: 600;
 
-    .nav-icon {
+    eg-icon.nav-icon {
       color: #1565C0;
     }
   }
 
-  .nav-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+  eg-icon.nav-icon {
     color: #777;
     transition: color 0.2s;
   }

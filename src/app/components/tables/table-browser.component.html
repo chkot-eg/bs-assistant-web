@@ -1,77 +1,60 @@
-<div class="page-header">
-  <div class="header-title">
-    <h1>Table Browser</h1>
-    <span class="header-subtitle">Browse and search database tables</span>
-  </div>
-</div>
+<eg-page>
+  <eg-header variant="page">
+    <eg-header-title>Table Browser</eg-header-title>
+    <eg-header-detail>Browse and search database tables</eg-header-detail>
+  </eg-header>
 
-<mat-card class="search-card">
-  <mat-card-content>
-    <div class="search-row">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search tables</mat-label>
-        <input matInput [(ngModel)]="searchQuery" placeholder="Enter table name or keyword..." (keyup.enter)="onSearch()">
-        @if (searchQuery) {
-          <button matSuffix mat-icon-button (click)="clearSearch()">
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="library-field">
-        <mat-label>Library</mat-label>
-        <mat-select [(ngModel)]="selectedLibrary" (selectionChange)="loadTables()">
-          <mat-option value="ADB800">ADB800</mat-option>
-          <mat-option value="ADBEGT">ADBEGT</mat-option>
-          <mat-option value="ADB900">ADB900</mat-option>
-          <mat-option value="QSYS2">QSYS2</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <button mat-flat-button color="primary" (click)="onSearch()" [disabled]="isLoading">
-        <mat-icon>search</mat-icon>
-        Search
-      </button>
-    </div>
-  </mat-card-content>
-</mat-card>
+  <eg-page-body>
+    <eg-section>
+      <eg-section-content>
+        <div class="search-row">
+          <eg-form-field-base
+            class="search-field"
+            [control]="searchControl"
+            placeholder="Enter table name or keyword..."
+            label="Search tables">
+          </eg-form-field-base>
+          <eg-form-field-select
+            class="library-field"
+            [control]="libraryControl"
+            [options]="libraryOptions"
+            label="Library">
+          </eg-form-field-select>
+          <eg-button variant="primary" [disabled]="isLoading" (clicked)="onSearch()">
+            <eg-icon name="search" size="small"></eg-icon>
+            Search
+          </eg-button>
+          @if (searchControl.value) {
+            <eg-button variant="text-muted" (clicked)="clearSearch()">
+              <eg-icon name="close" size="small"></eg-icon>
+              Clear
+            </eg-button>
+          }
+        </div>
+      </eg-section-content>
+    </eg-section>
 
-@if (isLoading) {
-  <div class="loading-container">
-    <mat-spinner diameter="48"></mat-spinner>
-    <p>Loading tables...</p>
-  </div>
-} @else if (dataSource.data.length > 0) {
-  <div class="results-info">
-    <span>{{ totalRows }} table(s) found</span>
-  </div>
+    @if (isLoading) {
+      <div class="loading-container">
+        <eg-progress-spinner [diameter]="48"></eg-progress-spinner>
+        <p>Loading tables...</p>
+      </div>
+    } @else if (filteredTables.length > 0) {
+      <div class="results-info">
+        <eg-chip>{{ totalRows }} table(s) found</eg-chip>
+      </div>
 
-  <mat-card class="table-card">
-    <div class="table-container">
-      <table mat-table [dataSource]="dataSource" matSort>
-        @for (col of displayedColumns; track col) {
-          <ng-container [matColumnDef]="col">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ col }}</th>
-            <td mat-cell *matCellDef="let row">{{ getCellValue(row, col) }}</td>
-          </ng-container>
-        }
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let row">
-            <button mat-icon-button color="primary" (click)="viewSchema(row)" matTooltip="View Schema">
-              <mat-icon>visibility</mat-icon>
-            </button>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns.concat('actions')"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns.concat('actions');" class="table-row"></tr>
-      </table>
-    </div>
-    <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons></mat-paginator>
-  </mat-card>
-} @else {
-  <div class="empty-state">
-    <mat-icon>table_chart</mat-icon>
-    <h3>No tables found</h3>
-    <p>Try adjusting your search query or library selection.</p>
-  </div>
-}
+      <eg-section>
+        <eg-table-v2 [columns]="tableColumns" [data]="filteredTables">
+          <eg-table-v2-pagination [pageSize]="25"></eg-table-v2-pagination>
+        </eg-table-v2>
+      </eg-section>
+    } @else {
+      <div class="empty-state">
+        <eg-icon name="table_chart" size="large"></eg-icon>
+        <h3>No tables found</h3>
+        <p>Try adjusting your search query or library selection.</p>
+      </div>
+    }
+  </eg-page-body>
+</eg-page>

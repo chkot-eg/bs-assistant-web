@@ -1,82 +1,56 @@
-<div class="page-header">
-  <div class="header-title">
-    <button mat-icon-button (click)="goBack()" class="back-button">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
+<eg-page>
+  <eg-header variant="page">
+    <eg-button variant="text-muted" size="small" (clicked)="goBack()">
+      <eg-icon name="arrow_back" size="small"></eg-icon>
+    </eg-button>
     <div>
-      <h1>{{ tableName }}</h1>
-      <span class="header-subtitle">Table schema &amp; column definitions</span>
+      <eg-header-title>{{ tableName }}</eg-header-title>
+      <eg-header-detail>Table schema &amp; column definitions</eg-header-detail>
     </div>
-  </div>
-  <div class="header-actions">
-    <button mat-flat-button color="primary" (click)="loadSchema()" [disabled]="isLoading">
-      <mat-icon>refresh</mat-icon>
-      Refresh
-    </button>
-  </div>
-</div>
+    <eg-header-actions>
+      <eg-button variant="primary" [disabled]="isLoading" (clicked)="loadSchema()">
+        <eg-icon name="refresh" size="small"></eg-icon>
+        Refresh
+      </eg-button>
+    </eg-header-actions>
+  </eg-header>
 
-@if (isLoading) {
-  <div class="loading-container">
-    <mat-spinner diameter="48"></mat-spinner>
-    <p>Loading schema for {{ tableName }}...</p>
-  </div>
-} @else if (error) {
-  <mat-card class="error-card">
-    <mat-card-content>
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error }}</p>
-      <button mat-flat-button color="primary" (click)="loadSchema()">Retry</button>
-    </mat-card-content>
-  </mat-card>
-} @else if (columns.length > 0) {
-  <div class="schema-summary">
-    <mat-card>
-      <mat-card-content>
+  <eg-page-body>
+    @if (isLoading) {
+      <div class="loading-container">
+        <eg-progress-spinner [diameter]="48"></eg-progress-spinner>
+        <p>Loading schema for {{ tableName }}...</p>
+      </div>
+    } @else if (error) {
+      <eg-section>
+        <eg-section-content>
+          <div class="error-content">
+            <eg-icon name="error_outline" size="large"></eg-icon>
+            <p>{{ error }}</p>
+            <eg-button variant="primary" (clicked)="loadSchema()">Retry</eg-button>
+          </div>
+        </eg-section-content>
+      </eg-section>
+    } @else if (columns.length > 0) {
+      <eg-box class="schema-summary">
         <div class="summary-items">
           <div class="summary-item">
-            <mat-icon>view_column</mat-icon>
+            <eg-icon name="view_column" size="small"></eg-icon>
             <span>{{ columns.length }} columns</span>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+      </eg-box>
 
-  <mat-card class="schema-table-card">
-    <div class="table-container">
-      <table mat-table [dataSource]="columns">
-        @for (col of displayedColumns; track col) {
-          <ng-container [matColumnDef]="col">
-            <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="cell-content">{{ getCellValue(row, col) }}</span>
-            </td>
-          </ng-container>
-        }
-        <ng-container matColumnDef="indicators">
-          <th mat-header-cell *matHeaderCellDef>Flags</th>
-          <td mat-cell *matCellDef="let row">
-            <div class="indicator-chips">
-              @if (isPrimaryKey(row)) {
-                <span class="chip pk">PK</span>
-              }
-              @if (!isNullable(row)) {
-                <span class="chip not-null">NOT NULL</span>
-              }
-            </div>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns.concat('indicators')"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns.concat('indicators');"></tr>
-      </table>
-    </div>
-  </mat-card>
-} @else {
-  <div class="empty-state">
-    <mat-icon>schema</mat-icon>
-    <h3>No schema data</h3>
-    <p>Could not retrieve column definitions for {{ tableName }}.</p>
-  </div>
-}
+      <eg-section>
+        <eg-table [columns]="schemaColumns" [data]="columns">
+        </eg-table>
+      </eg-section>
+    } @else {
+      <div class="empty-state">
+        <eg-icon name="schema" size="large"></eg-icon>
+        <h3>No schema data</h3>
+        <p>Could not retrieve column definitions for {{ tableName }}.</p>
+      </div>
+    }
+  </eg-page-body>
+</eg-page>

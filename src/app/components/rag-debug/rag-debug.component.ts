@@ -1,29 +1,51 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { RagDebugService, RagDebugResponse } from '../../services/rag-debug.service';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgBoxModule,
+  EgSectionModule,
+  EgFormFieldModule,
+  EgLabelModule,
+  EgChipModule,
+} from '../../shared/eg-mock';
 
 @Component({
   selector: 'app-rag-debug',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatProgressSpinnerModule, MatFormFieldModule, MatInputModule, MatSelectModule
+    CommonModule,
+    ReactiveFormsModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgBoxModule,
+    EgSectionModule,
+    EgFormFieldModule,
+    EgLabelModule,
+    EgChipModule,
   ],
   templateUrl: './rag-debug.component.html',
   styleUrls: ['./rag-debug.component.scss']
 })
 export class RagDebugComponent {
-  query = '';
-  topK = 7;
-  topKOptions = [3, 5, 7, 10];
+  queryControl = new FormControl('');
+  topKControl = new FormControl(7);
+  topKOptions = [
+    { value: 3, label: '3' },
+    { value: 5, label: '5' },
+    { value: 7, label: '7' },
+    { value: 10, label: '10' },
+  ];
   result: RagDebugResponse | null = null;
   isLoading = false;
   errorMessage: string | null = null;
@@ -31,14 +53,14 @@ export class RagDebugComponent {
   constructor(private ragDebugService: RagDebugService) {}
 
   executeLookup(): void {
-    const trimmed = this.query.trim();
+    const trimmed = (this.queryControl.value || '').trim();
     if (!trimmed) return;
 
     this.isLoading = true;
     this.errorMessage = null;
     this.result = null;
 
-    this.ragDebugService.lookup(trimmed, this.topK).subscribe({
+    this.ragDebugService.lookup(trimmed, this.topKControl.value || 7).subscribe({
       next: (response) => {
         this.result = response;
         this.isLoading = false;

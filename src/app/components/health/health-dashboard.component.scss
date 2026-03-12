@@ -5,35 +5,9 @@
   overflow-y: auto;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .header-title {
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin: 0;
-    }
-    .header-subtitle {
-      font-size: 13px;
-      color: #6C757D;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-
-    .last-checked {
-      font-size: 12px;
-      color: #6C757D;
-    }
-  }
+.last-checked {
+  font-size: 12px;
+  color: #6C757D;
 }
 
 .loading-container {
@@ -76,12 +50,6 @@
       background: #E3F2FD;
       color: #1565C0;
     }
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
   }
 }
 
@@ -90,9 +58,7 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 
-  mat-card {
-    border-radius: 12px;
-    border: 1px solid #e0e0e0;
+  eg-box {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
@@ -107,29 +73,18 @@
     &.status-down {
       border-left: 4px solid #F44336;
     }
-
-    mat-card-content {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
   }
 }
 
-.status-icon-wrapper {
-  .status-icon {
-    font-size: 40px;
-    width: 40px;
-    height: 40px;
+.health-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-    &.up {
-      color: #4CAF50;
-    }
-    &.down {
-      color: #F44336;
-    }
-  }
+.status-icon {
+  &.up { color: #4CAF50; }
+  &.down { color: #F44336; }
 }
 
 .service-info {
@@ -138,25 +93,6 @@
     font-size: 16px;
     font-weight: 600;
     color: #1a1a1a;
-  }
-
-  .status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-top: 4px;
-
-    &.up {
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
-    &.down {
-      background: #FFEBEE;
-      color: #C62828;
-    }
   }
 }
 

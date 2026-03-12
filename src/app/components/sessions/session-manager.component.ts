@@ -1,11 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgAccordionModule,
+  EgBoxModule,
+  EgSectionModule
+} from '../../shared/eg-mock';
 import { SessionService } from '../../services/session.service';
 import { Session, ChatMessageDto } from '../../models/session.model';
 
@@ -13,8 +18,9 @@ import { Session, ChatMessageDto } from '../../models/session.model';
   selector: 'app-session-manager',
   standalone: true,
   imports: [
-    CommonModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatExpansionModule, MatChipsModule, MatProgressSpinnerModule
+    CommonModule, EgPageModule, EgHeaderModule, EgButtonModule,
+    EgIconModule, EgProgressSpinnerModule, EgAccordionModule,
+    EgBoxModule, EgSectionModule
   ],
   templateUrl: './session-manager.component.html',
   styleUrls: ['./session-manager.component.scss']

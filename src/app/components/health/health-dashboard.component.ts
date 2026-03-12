@@ -1,16 +1,32 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HealthService } from '../../services/health.service';
 import { HealthStatus } from '../../models/metrics.model';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgBoxModule,
+  EgLabelModule,
+} from '../../shared/eg-mock';
 
 @Component({
   selector: 'app-health-dashboard',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgBoxModule,
+    EgLabelModule,
+  ],
   templateUrl: './health-dashboard.component.html',
   styleUrls: ['./health-dashboard.component.scss']
 })

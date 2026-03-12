@@ -1,41 +1,64 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { TableService } from '../../services/table.service';
 import { environment } from '../../../environments/environment';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import {
+  EgPageModule,
+  EgHeaderModule,
+  EgButtonModule,
+  EgIconModule,
+  EgProgressSpinnerModule,
+  EgBoxModule,
+  EgSectionModule,
+  EgFormFieldModule,
+  EgTableV2Module,
+  EgChipModule,
+} from '../../shared/eg-mock';
 
 @Component({
   selector: 'app-table-browser',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatTableModule,
-    MatPaginatorModule, MatSortModule, MatProgressSpinnerModule
+    CommonModule,
+    ReactiveFormsModule,
+    EgPageModule,
+    EgHeaderModule,
+    EgButtonModule,
+    EgIconModule,
+    EgProgressSpinnerModule,
+    EgBoxModule,
+    EgSectionModule,
+    EgFormFieldModule,
+    EgTableV2Module,
+    EgChipModule,
   ],
   templateUrl: './table-browser.component.html',
   styleUrls: ['./table-browser.component.scss']
 })
-export class TableBrowserComponent implements OnInit {
-  searchQuery = '';
-  selectedLibrary = environment.defaultLibrary;
+export class TableBrowserComponent implements OnInit, OnDestroy {
+  searchControl = new FormControl('');
+  libraryControl = new FormControl(environment.defaultLibrary);
+
+  libraryOptions = [
+    { value: 'ADB800', label: 'ADB800' },
+    { value: 'ADBEGT', label: 'ADBEGT' },
+    { value: 'ADB900', label: 'ADB900' },
+    { value: 'QSYS2', label: 'QSYS2' },
+  ];
+
   isLoading = false;
-  displayedColumns: string[] = [];
-  dataSource = new MatTableDataSource<any>([]);
+  filteredTables: any[] = [];
   totalRows = 0;
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  tableColumns: { field: string; headerName: string; sortable: boolean; flex: number }[] = [];
+
+  private subs = new Subscription();
 
   constructor(
     private tableService: TableService,
@@ -43,14 +66,24 @@ export class TableBrowserComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.subs.add(
+      this.libraryControl.valueChanges.subscribe(() => this.loadTables())
+    );
     this.loadTables();
+  }
+
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
   }
 
   loadTables(): void {
     this.isLoading = true;
-    const obs = this.searchQuery.trim()
-      ? this.tableService.searchTables(this.searchQuery.trim(), this.selectedLibrary)
-      : this.tableService.getAllTables(this.selectedLibrary);
+    const query = (this.searchControl.value || '').trim();
+    const library = this.libraryControl.value || environment.defaultLibrary;
+
+    const obs = query
+      ? this.tableService.searchTables(query, library)
+      : this.tableService.getAllTables(library);
 
     obs.subscribe({
       next: (response) => {
@@ -58,11 +91,9 @@ export class TableBrowserComponent implements OnInit {
         let rowCount = response.rowCount ?? 0;
 
         if (Array.isArray(response.data)) {
-          // Direct array format
           data = response.data;
           rowCount = rowCount || data.length;
         } else if (response.data?.content && Array.isArray(response.data.content)) {
-          // MCP tool response format: { content: [{ type: "text", text: "..." }] }
           const text = response.data.content
             .filter((c: any) => c.type === 'text')
             .map((c: any) => c.text)
@@ -84,15 +115,21 @@ export class TableBrowserComponent implements OnInit {
           }
         }
 
-        this.displayedColumns = response.columns || (data.length > 0 ? Object.keys(data[0]) : []);
-        this.dataSource.data = data;
+        const displayedColumns = response.columns || (data.length > 0 ? Object.keys(data[0]) : []);
+
+        this.tableColumns = [
+          ...displayedColumns.map((col: string) => ({
+            field: col,
+            headerName: col,
+            sortable: true,
+            flex: 1,
+          })),
+          { field: '_actions', headerName: 'Actions', sortable: false, flex: 0 },
+        ];
+
+        this.filteredTables = data;
         this.totalRows = rowCount;
         this.isLoading = false;
-
-        setTimeout(() => {
-          if (this.paginator) this.dataSource.paginator = this.paginator;
-          if (this.sort) this.dataSource.sort = this.sort;
-        });
       },
       error: () => {
         this.isLoading = false;
@@ -105,7 +142,7 @@ export class TableBrowserComponent implements OnInit {
   }
 
   clearSearch(): void {
-    this.searchQuery = '';
+    this.searchControl.setValue('');
     this.loadTables();
   }
 
@@ -114,11 +151,5 @@ export class TableBrowserComponent implements OnInit {
     if (tableName) {
       this.router.navigate(['/security/tables', tableName, 'schema']);
     }
-  }
-
-  getCellValue(row: any, col: string): string {
-    const val = row[col];
-    if (val === null || val === undefined) return '';
-    return String(val);
   }
 }

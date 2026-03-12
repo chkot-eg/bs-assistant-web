@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { filter } from 'rxjs/operators';
+
+// EG Components — replace '../../shared/eg-mock' with '@eg-apps/common' when registry is available
+import { EgIconModule, EgButtonModule, EgDividerModule } from '../../shared/eg-mock';
 
 interface NavItem {
   label: string;
@@ -19,7 +20,7 @@ interface ShortcutItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, RouterModule, EgIconModule, EgButtonModule, EgDividerModule],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.scss']
 })
