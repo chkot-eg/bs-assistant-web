@@ -524,12 +524,19 @@
 
       <!-- Voice Status Messages -->
     @if ((voiceState$ | async)?.isRecording) {
-       <div class="voice-status-message recording">
+      <div class="voice-status-message recording">
         <div class="recording-indicator"></div>
         <div class="recording-content">
-          <span class="recording-title">Listening... Speak now</span>
-          <span class="voice-commands">Say "ask Fabrioo" to send</span>
+          <span class="recording-title">Recording... Press mic to stop</span>
+          <span class="voice-commands">Say "ask Fabrioo" to auto-send after transcription</span>
         </div>
+      </div>
+    }
+
+    @if ((voiceState$ | async)?.isProcessing) {
+      <div class="voice-status-message recording">
+        <mat-icon class="spinning">sync</mat-icon>
+        <span>Transcribing audio...</span>
       </div>
     }
 
@@ -545,14 +552,19 @@
 
     <!-- Input Field with Enhanced Features -->
     <div class="input-container">
-      <!-- Voice Recording Button -->  
+      <!-- Voice Recording Button -->
       <button mat-icon-button
               (click)="toggleVoiceRecording()"
-              [matTooltip]="(voiceState$ | async)?.isRecording ? 'Stop recording' : 'Start voice recording'"
+              [matTooltip]="(voiceState$ | async)?.isRecording ? 'Stop & transcribe' : (voiceState$ | async)?.isProcessing ? 'Transcribing...' : 'Start voice recording'"
               [class.voice-recording]="(voiceState$ | async)?.isRecording"
+              [disabled]="(voiceState$ | async)?.isProcessing"
               class="action-btn voice-btn"
               type="button">
-        <mat-icon>{{ (voiceState$ | async)?.isRecording ? 'mic' : 'mic_none' }}</mat-icon>
+        @if ((voiceState$ | async)?.isProcessing) {
+          <mat-icon class="tts-loading">hourglass_empty</mat-icon>
+        } @else {
+          <mat-icon>{{ (voiceState$ | async)?.isRecording ? 'mic' : 'mic_none' }}</mat-icon>
+        }
       </button>
       
       <mat-form-field appearance="outline" class="message-input" [class.loading]="!!(isLoading$ | async)">

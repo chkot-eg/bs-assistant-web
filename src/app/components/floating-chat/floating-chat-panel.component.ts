@@ -159,7 +159,6 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     isRecording: false,
     isProcessing: false,
     transcript: '',
-    interimTranscript: '',
     language: 'en-US',
     error: null
   };
@@ -268,6 +267,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     this.destroy$.next();
     this.destroy$.complete();
     this.voiceService.stopRecording();
+    this.voiceService.releaseStream();
     this.ttsService.stop();
     if (this.streamSubscription) {
       this.streamSubscription.unsubscribe();

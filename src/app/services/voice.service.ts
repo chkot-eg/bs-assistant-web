@@ -1,92 +1,34 @@
-// voice.service.ts
-import { Injectable } from '@angular/core';
+// voice.service.ts — Push-to-talk recorder; transcription handled by backend (Whisper)
+import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { SttService } from './stt.service';
 
 export interface VoiceState {
   isRecording: boolean;
-  isProcessing: boolean;
+  isProcessing: boolean;   // true while waiting for backend transcription
   transcript: string;
-  interimTranscript: string; // Added for showing real-time text
   language: string;
   error: string | null;
-  commandDetected?: 'SEND' | null; // Voice command detected
-  lastInputWasVoice?: boolean; // Track if last input was voice
-}
-
-interface SpeechRecognitionEvent extends Event {
-  resultIndex: number;
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message?: string;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  length: number;
-  isFinal: boolean;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
+  commandDetected?: 'SEND' | null;
+  lastInputWasVoice?: boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class VoiceService {
-  private recognition: SpeechRecognition | null = null;
-  private isListening = false;
-  // Set to true only when the user (or a fatal error) explicitly stops recording.
-  // Prevents auto-restart in onend for intentional/fatal stops.
-  private intentionallyStopped = false;
-  private autoRestartTimeout: ReturnType<typeof setTimeout> | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private mediaStream: MediaStream | null = null;
+  private audioChunks: Blob[] = [];
 
-  // Store final results separately to avoid duplication
-  private finalTranscript = '';
-  // Persists transcript across stop/resume cycles; cleared only on send or clearTranscript()
+  // Persists transcript across record/stop cycles; cleared only on send or clearTranscript()
   private savedTranscript = '';
-  // Track whether last message was sent via voice command
   private _lastInputWasVoice = false;
 
   private voiceState = new BehaviorSubject<VoiceState>({
     isRecording: false,
     isProcessing: false,
     transcript: '',
-    interimTranscript: '',
     language: 'en-US',
     error: null,
     commandDetected: null
@@ -94,8 +36,8 @@ export class VoiceService {
 
   voiceState$ = this.voiceState.asObservable();
 
-  // Nordic languages and English
-  supportedLanguages: { [key: string]: string } = {
+  // Nordic languages and English (same set as before)
+  supportedLanguages: Record<string, string> = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'nb-NO': 'Norwegian Bokmål',
@@ -106,342 +48,168 @@ export class VoiceService {
     'is-IS': 'Icelandic'
   };
 
-  constructor() {
-    this.initializeWebSpeechAPI();
-  }
+  constructor(private sttService: SttService, private ngZone: NgZone) {}
 
-  // Get user's browser language as default
+  // ---------------------------------------------------------------------------
+  // Public API (unchanged from previous implementation)
+  // ---------------------------------------------------------------------------
+
   getDefaultLanguage(): string {
-    const browserLang = navigator.language || 'en-US';
-    // Check if browser language is supported
-    if (this.supportedLanguages[browserLang]) {
-      return browserLang;
-    }
-    // Try to match language prefix
-    const langPrefix = browserLang.split('-')[0];
-    const matchedLang = Object.keys(this.supportedLanguages).find(key => key.startsWith(langPrefix + '-'));
-    // Default to English US if no match
-    return matchedLang || 'en-US';
+    return '';
   }
 
-  private initializeWebSpeechAPI(): void {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  startRecording(language: string = ''): void {
+    if (this.voiceState.value.isRecording) return;
 
-    if (SpeechRecognitionAPI) {
-      this.recognition = new SpeechRecognitionAPI();
-      this.setupRecognitionListeners();
-      console.log('Speech Recognition initialized');
-    } else {
-      console.warn('Speech Recognition API not supported');
+    if (!this.sttService.isSupported()) {
+      this.updateState({ error: 'Microphone recording not supported in this browser.' });
+      return;
     }
-  }
 
+    this.updateState({ isRecording: true, error: null, language });
+    this.audioChunks = [];
 
-  private setupRecognitionListeners(): void {
-    if (!this.recognition) return;
+    this.getOrAcquireStream().then(stream => {
+      this.mediaStream = stream;
+      const recorder = this.sttService.createRecorder(stream);
+      this.mediaRecorder = recorder;
 
-    this.recognition.onstart = () => {
-      console.log('Recognition started');
-      this.isListening = true;
-      this.finalTranscript = ''; // Reset only the current session's transcript
-      this.updateState({
-        isRecording: true,
-        error: null,
-        isProcessing: false,
-        // Keep transcript (savedTranscript) so the user sees prior text during recording
-        interimTranscript: ''
-      });
-    };
-
-    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = '';
-
-      // Process ALL results from the beginning, not just from resultIndex
-      // This is the key fix - we rebuild the final transcript each time
-      this.finalTranscript = '';
-
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript;
-
-        if (result.isFinal) {
-          // Add to final transcript
-          this.finalTranscript += transcript;
-          console.log('Final:', transcript);
-        } else {
-          // This is interim (still being processed)
-          interimTranscript += transcript;
-          console.log('Interim:', transcript);
-        }
-      }
-
-      // Build full transcript: saved text from previous sessions + current session
-      const fullTranscript = this.savedTranscript
-        ? (this.savedTranscript + ' ' + this.finalTranscript).trim()
-        : this.finalTranscript.trim();
-
-      // Detect voice commands in the combined transcript
-      const command = this.detectCommand(fullTranscript);
-      let cleanedTranscript = fullTranscript;
-
-      console.log('[VOICE] Full transcript (saved + current):', fullTranscript);
-      console.log('[VOICE] Command detected:', command);
-
-      if (command) {
-        // Remove the command word from transcript
-        console.log('[VOICE] Before removing command:', cleanedTranscript);
-        cleanedTranscript = this.removeCommand(fullTranscript);
-        console.log('[VOICE] After removing command:', cleanedTranscript);
-      }
-
-      // Update state - show final + interim combined for display
-      // But only store final in the actual transcript
-      this.updateState({
-        transcript: cleanedTranscript,
-        interimTranscript: interimTranscript,
-        isProcessing: interimTranscript.length > 0,
-        commandDetected: command
-      });
-
-      console.log('[VOICE] State updated - commandDetected:', command, 'transcript:', cleanedTranscript);
-    };
-
-    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
-
-      const errorMessages: { [key: string]: string } = {
-        'network': 'Network error. Check your internet connection.',
-        'audio-capture': 'No microphone found.',
-        'not-allowed': 'Microphone access denied. Please allow access.',
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
       };
 
-      // no-speech: browser found silence — suppress the error and let onend auto-restart
-      if (event.error === 'no-speech') {
-        return;
-      }
+      recorder.onstop = () => this.ngZone.run(() => this.onRecorderStopped(language));
 
-      // aborted: caused by our own stopRecording() / intentionallyStopped — ignore
-      if (event.error === 'aborted') {
-        return;
-      }
-
-      // Fatal errors: mark as intentional so onend does NOT auto-restart
-      if (['not-allowed', 'audio-capture', 'network'].includes(event.error)) {
-        this.intentionallyStopped = true;
-      }
-
-      const errorMsg = errorMessages[event.error] || `Error: ${event.error}`;
-      this.updateState({
-        error: errorMsg,
-        isRecording: false,
-        isProcessing: false
-      });
-      this.isListening = false;
-    };
-
-    this.recognition.onend = () => {
-      console.log('Recognition ended');
-
-      const shouldRestart = !this.intentionallyStopped;
-      this.intentionallyStopped = false;
-      this.isListening = false;
-
-      // Save the transcript here — onend fires AFTER all onresult final calls,
-      // so this captures the fully-finalized text (including last-second words).
-      // Only save when transcript is non-empty: an empty transcript means
-      // clearTranscript() already ran (e.g. after a send), so we don't overwrite.
-      const finalizedTranscript = this.voiceState.value.transcript;
-      if (finalizedTranscript) {
-        this.savedTranscript = finalizedTranscript;
-      }
-
-      if (shouldRestart) {
-        // Keep isRecording: true so the button stays lit — the user didn't stop.
-        // Only clear interim state while the engine briefly re-initialises.
-        this.updateState({
-          isProcessing: false,
-          interimTranscript: '',
-          commandDetected: null
-        });
-        const { language } = this.voiceState.value;
-        this.autoRestartTimeout = setTimeout(() => {
-          this.autoRestartTimeout = null;
-          this.startRecording(language);
-        }, 300);
-      } else {
-        // Intentional stop — reflect that in the UI
-        this.updateState({
-          isRecording: false,
-          isProcessing: false,
-          interimTranscript: '',
-          commandDetected: null
-        });
-      }
-    };
-  }
-
-  startRecording(language: string = 'en-US'): void {
-    if (!this.recognition) {
-      this.updateState({
-        error: 'Speech Recognition not supported. Use Chrome or Edge.'
-      });
-      return;
-    }
-
-    if (this.isListening) {
-      console.log('Already recording');
-      return;
-    }
-
-    try {
-      this.recognition.lang = language;
-
-      // Reset only the current session; keep savedTranscript for resume
-      this.finalTranscript = '';
-
-      this.updateState({
-        isRecording: true,
-        interimTranscript: '',
-        error: null,
-        language
-      });
-
-      // Start recognition
-      this.recognition.start();
-      console.log('Started recording, language:', language);
-
-    } catch (error: any) {
-      console.error('Error starting:', error);
-
-      if (error.message?.includes('already started')) {
-        this.recognition.stop();
-        setTimeout(() => this.startRecording(language), 300);
-        return;
-      }
-
-      this.updateState({
-        error: 'Failed to start recording',
-        isRecording: false
-      });
-    }
-  }
-
-  stopRecording(): void {
-    console.log('Stopping recording...');
-
-    // Cancel any pending auto-restart before marking as intentional stop
-    if (this.autoRestartTimeout) {
-      clearTimeout(this.autoRestartTimeout);
-      this.autoRestartTimeout = null;
-    }
-    this.intentionallyStopped = true;
-
-    if (this.recognition && this.isListening) {
-      try {
-        this.recognition.stop();
-      } catch (error) {
-        console.error('Error stopping:', error);
-      }
-    }
-
-    this.isListening = false;
-    this.updateState({
-      isRecording: false,
-      isProcessing: false,
-      interimTranscript: ''
+      recorder.start(500);
+    }).catch((err: Error) => {
+      this.mediaStream = null;
+      const msg = err.message?.toLowerCase().includes('denied')
+        ? 'Microphone access denied. Please allow access in browser settings.'
+        : 'Could not access microphone.';
+      this.updateState({ isRecording: false, error: msg });
     });
   }
 
+  /** Release the warm mic stream (call when the chat panel closes). */
+  releaseStream(): void {
+    this.stopStream();
+  }
+
+  stopRecording(): void {
+    if (!this.voiceState.value.isRecording) return;
+
+    // isRecording → false immediately so the button responds at once
+    this.updateState({ isRecording: false, isProcessing: true });
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop(); // triggers onstop → onRecorderStopped
+    } else {
+      this.mediaRecorder = null;
+      this.updateState({ isProcessing: false });
+    }
+  }
+
   isSupported(): boolean {
-    return this.recognition !== null;
+    return this.sttService.isSupported();
   }
 
   isRecording(): boolean {
-    return this.isListening;
+    return this.voiceState.value.isRecording;
   }
 
   getTranscript(): string {
     return this.voiceState.value.transcript;
   }
 
-  // Get combined transcript (final + interim) for display
-  getDisplayTranscript(): string {
-    const state = this.voiceState.value;
-    if (state.interimTranscript) {
-      return (state.transcript + ' ' + state.interimTranscript).trim();
-    }
-    return state.transcript;
-  }
-
   clearTranscript(): void {
-    this.finalTranscript = '';
-    this.savedTranscript = ''; // Also clear saved so next recording starts fresh
-    this.updateState({
-      transcript: '',
-      interimTranscript: '',
-      error: null,
-      commandDetected: null
-    });
+    this.savedTranscript = '';
+    this.updateState({ transcript: '', error: null, commandDetected: null });
   }
 
-  /**
-   * Detect voice commands in transcript
-   * Commands: ask Fabrioo (sends message)
-   */
-  private detectCommand(transcript: string): 'SEND' | null {
-    // Remove punctuation and extra spaces, then convert to uppercase
-    const text = transcript.trim().replace(/[.,!?;:]+$/, '').trim().toUpperCase();
-
-    console.log('[DETECT] Checking text for commands:', text);
-
-    // Check if transcript ends with "ask <anything starting with fab>"
-    if (/\bASK\s+FAB\w*$/i.test(text)) {
-      console.log('[DETECT] Matched ask Fab* command');
-      return 'SEND';
-    }
-
-    console.log('[DETECT] No command matched');
-    return null;
-  }
-
-  /**
-   * Remove command word from transcript
-   */
-  private removeCommand(transcript: string): string {
-    // Strip trailing punctuation first (same normalization as detectCommand)
-    const normalized = transcript.trim().replace(/[.,!?;:]+$/, '').trim();
-
-    const result = normalized.replace(/\s*\bask\s+fab\w*\s*$/i, '').trim();
-    console.log('[REMOVE] Input:', transcript, '-> Normalized:', normalized, '-> Output:', result);
-    return result;
-  }
-
-  getSupportedLanguages(): { [key: string]: string } {
+  getSupportedLanguages(): Record<string, string> {
     return this.supportedLanguages;
   }
 
-  /**
-   * Mark that a voice command triggered the send.
-   * Called from the component before sendMessage().
-   */
   markVoiceSend(): void {
     this._lastInputWasVoice = true;
   }
 
-  /**
-   * Check and consume the voice-send flag.
-   * Returns true once after markVoiceSend(), then resets.
-   */
   consumeVoiceSendFlag(): boolean {
     const was = this._lastInputWasVoice;
     this._lastInputWasVoice = false;
     return was;
   }
 
-  private updateState(partial: Partial<VoiceState>): void {
-    this.voiceState.next({
-      ...this.voiceState.value,
-      ...partial
+  // ---------------------------------------------------------------------------
+  // Private
+  // ---------------------------------------------------------------------------
+
+  private onRecorderStopped(language: string): void {
+    // Keep mediaStream alive for the next recording (avoids getUserMedia delay).
+    // Stream is released only via releaseStream().
+    const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+    this.mediaRecorder = null;
+
+    if (this.audioChunks.length === 0) {
+      this.updateState({ isProcessing: false, error: 'No audio captured.' });
+      return;
+    }
+
+    const blob = new Blob(this.audioChunks, { type: mimeType });
+    this.audioChunks = [];
+
+    // Pass language only if explicitly set; otherwise let Whisper auto-detect.
+    this.sttService.transcribe(blob, language || undefined).subscribe({
+      next: (text) => this.handleTranscript(text),
+      error: (err) => {
+        console.error('[VoiceService] Transcription error:', err);
+        this.updateState({
+          isProcessing: false,
+          error: 'Transcription failed. Please try again.'
+        });
+      }
     });
+  }
+
+  private handleTranscript(text: string): void {
+    const combined = this.savedTranscript
+      ? (this.savedTranscript + ' ' + text).trim()
+      : text.trim();
+
+    const command = this.detectCommand(combined);
+    const cleanedTranscript = command ? this.removeCommand(combined) : combined;
+
+    this.savedTranscript = cleanedTranscript;
+
+    this.updateState({
+      isProcessing: false,
+      transcript: cleanedTranscript,
+      commandDetected: command
+    });
+  }
+
+  private getOrAcquireStream(): Promise<MediaStream> {
+    const live = this.mediaStream?.getTracks().every(t => t.readyState === 'live');
+    if (live) return Promise.resolve(this.mediaStream!);
+    this.stopStream();
+    return this.sttService.acquireStream();
+  }
+
+  private stopStream(): void {
+    this.mediaStream?.getTracks().forEach(t => t.stop());
+    this.mediaStream = null;
+  }
+
+  private detectCommand(transcript: string): 'SEND' | null {
+    const text = transcript.trim().replace(/[.,!?;:]+$/, '').trim();
+    return /\bask\s+fab\w*$/i.test(text) ? 'SEND' : null;
+  }
+
+  private removeCommand(transcript: string): string {
+    return transcript.trim().replace(/[.,!?;:]+$/, '').replace(/\s*\bask\s+fab\w*\s*$/i, '').trim();
+  }
+
+  private updateState(partial: Partial<VoiceState>): void {
+    this.voiceState.next({ ...this.voiceState.value, ...partial });
   }
 }
