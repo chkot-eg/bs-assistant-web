@@ -1,6 +1,7 @@
+// AUTO-GENERATED from .env by scripts/set-env.js — do not edit manually
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8080',
+  apiUrl: '',
   sessionTimeout: 86400000,
   maxRetries: 3,
   retryDelay: 1000,

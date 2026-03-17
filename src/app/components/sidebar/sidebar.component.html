@@ -25,6 +25,20 @@
     }
   </div>
 
+  <!-- Environment Info -->
+  <div class="env-info">
+    <div class="env-header">Environment</div>
+    <div class="env-badge" [style.background]="envColor">{{ envMode }}</div>
+    <div class="env-detail">
+      <span class="env-label">API</span>
+      <span class="env-value">{{ apiUrl || 'proxy' }}</span>
+    </div>
+    <div class="env-detail">
+      <span class="env-label">Library</span>
+      <span class="env-value">{{ defaultLibrary }}</span>
+    </div>
+  </div>
+
   <div class="sidebar-footer">
     <button class="tilbake-btn">Tilbake</button>
   </div>

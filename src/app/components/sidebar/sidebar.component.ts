@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { filter } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 interface NavItem {
   label: string;
@@ -25,6 +26,11 @@ interface ShortcutItem {
 })
 export class SidebarComponent {
   showNav = false;
+
+  envMode = environment.production ? 'Production' : 'Development';
+  envColor = environment.production ? '#d32f2f' : '#4CAF50';
+  apiUrl = environment.apiUrl;
+  defaultLibrary = environment.defaultLibrary;
 
   navItems: NavItem[] = [
     { label: 'Dashboard', route: '/security/dashboard', icon: 'dashboard' },

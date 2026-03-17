@@ -1,6 +1,7 @@
+// AUTO-GENERATED from .env by scripts/set-env.js — do not edit manually
 export const environment = {
   production: false,
-  apiUrl: '',  // Use relative URL to leverage proxy - no CORS issues
+  apiUrl: 'http://10.30.9.66:443',
   sessionTimeout: 86400000,
   maxRetries: 3,
   retryDelay: 1000,

@@ -56,6 +56,53 @@
   }
 }
 
+.env-info {
+  padding: 12px 8px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.env-info .env-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.env-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.env-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+
+  .env-label {
+    color: #888;
+    font-weight: 500;
+  }
+
+  .env-value {
+    color: #333;
+    font-weight: 600;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+  }
+}
+
 .sidebar-footer {
   padding-top: 16px;
 }

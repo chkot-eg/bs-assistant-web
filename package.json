@@ -3,12 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --proxy-config proxy.conf.json --open",
-    "start:prod": "ng serve --configuration production",
-    "build": "ng build",
-    "build:prod": "ng build --configuration production",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "env:dev": "node scripts/set-env.js",
+    "env:prod": "node scripts/set-env.js --production",
+    "start": "npm run env:dev && ng serve --proxy-config proxy.conf.json --open",
+    "start:prod": "npm run env:prod && ng serve --configuration production",
+    "build": "npm run env:dev && ng build",
+    "build:prod": "npm run env:prod && ng build --configuration production",
+    "watch": "npm run env:dev && ng build --watch --configuration development",
+    "test": "npm run env:dev && ng test"
   },
   "private": true,
   "dependencies": {

@@ -48,3 +48,5 @@ FRONTEND-API-CHANGELOG.md
 frontend-sse-sql-steps.md
 /docs
 .env
+src/environments/environment.ts
+src/environments/environment.prod.ts
