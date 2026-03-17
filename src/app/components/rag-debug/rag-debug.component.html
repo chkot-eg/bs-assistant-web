@@ -1,0 +1,136 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>RAG Debug</h1>
+    <span class="header-subtitle">Inspect document context & extracted tables for any query</span>
+  </div>
+</div>
+
+<!-- Query Input -->
+<div class="query-input-section">
+  <mat-form-field appearance="outline" class="query-field">
+    <mat-label>Query</mat-label>
+    <input matInput [(ngModel)]="query" placeholder="e.g., show top 5 customers by sales" (keydown)="onKeydown($event)">
+    <mat-icon matPrefix>search</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="topk-field">
+    <mat-label>Top K</mat-label>
+    <mat-select [(ngModel)]="topK">
+      @for (opt of topKOptions; track opt) {
+        <mat-option [value]="opt">{{ opt }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" (click)="executeLookup()" [disabled]="isLoading || !query.trim()">
+    <mat-icon>science</mat-icon>
+    Inspect
+  </button>
+</div>
+
+<!-- Loading -->
+@if (isLoading) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Performing RAG lookup...</p>
+  </div>
+}
+
+<!-- Error -->
+@if (errorMessage) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </mat-card-content>
+  </mat-card>
+}
+
+<!-- Results -->
+@if (result) {
+  <!-- Metadata Bar -->
+  <mat-card class="results-meta">
+    <mat-card-content>
+      <span class="rag-status" [class.available]="result.ragAvailable" [class.unavailable]="!result.ragAvailable">
+        <mat-icon>{{ result.ragAvailable ? 'check_circle' : 'error' }}</mat-icon>
+        RAG {{ result.ragAvailable ? 'Available' : 'Unavailable' }}
+      </span>
+      <span class="search-type-badge" [class.semantic]="result.searchType === 'document-based'">
+        {{ result.searchType }}
+      </span>
+      <span class="meta-item">
+        <mat-icon>timer</mat-icon>
+        {{ result.executionTimeMs }}ms
+      </span>
+      <span class="meta-item">
+        <mat-icon>table_chart</mat-icon>
+        {{ result.extractedTableCount }} table(s) extracted
+      </span>
+      <span class="meta-item">
+        <mat-icon>menu_book</mat-icon>
+        {{ result.businessRuleCount }} rule(s)
+      </span>
+      <span class="meta-item hint">
+        {{ result.knownTableCount }} known tables configured
+      </span>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Extracted Tables -->
+  <div class="section">
+    <h2>Extracted Tables</h2>
+    @if (result.extractedTables.length > 0) {
+      <mat-card class="extracted-tables-card">
+        <mat-card-content>
+          <div class="extracted-tables-list">
+            @for (table of result.extractedTables; track table) {
+              <span class="table-chip">{{ table }}</span>
+            }
+          </div>
+          <p class="tables-hint">These tables would be pre-fetched for schema verification during agentic query execution.</p>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card>
+        <mat-card-content class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <p>No known tables extracted from document results</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+
+  <!-- Business Rules -->
+  <div class="section">
+    <h2>Business Rules</h2>
+    @if (result.businessRules.length > 0) {
+      @for (rule of result.businessRules; track rule.sourceDocument + rule.chunkIndex) {
+        <mat-card class="rule-card">
+          <mat-card-content>
+            <div class="rule-header">
+              <span class="rule-source">
+                <mat-icon>description</mat-icon>
+                {{ rule.sourceDocument }}
+              </span>
+              <span class="category-chip">{{ rule.category }}</span>
+              <span class="score-badge" [ngClass]="getScoreClass(rule.similarityScore)">
+                {{ formatScore(rule.similarityScore) }}
+              </span>
+              @if (rule.chunkIndex > 0) {
+                <span class="chunk-label">Chunk #{{ rule.chunkIndex }}</span>
+              }
+            </div>
+            <pre class="rule-content">{{ rule.content }}</pre>
+          </mat-card-content>
+        </mat-card>
+      }
+    } @else {
+      <mat-card>
+        <mat-card-content class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <p>No business rules found for this query</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

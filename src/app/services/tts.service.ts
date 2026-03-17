@@ -1,6 +1,6 @@
 // tts.service.ts — Azure OpenAI TTS (backend-mediated)
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -68,9 +68,14 @@ export class TtsService {
     const format = this.supportsOpus() ? 'OGG_OPUS' : 'MP3';
 
     // Call backend
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'X-Session-ID': localStorage.getItem('sessionId') || ''
+    });
+
     this.http.post(`${this.apiUrl}/api/v1/tts/synthesize`,
       { text, language, format },
-      { responseType: 'blob' }
+      { headers, responseType: 'blob' }
     ).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);

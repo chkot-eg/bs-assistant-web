@@ -28,11 +28,6 @@ export const routes: Routes = [
       .then(m => m.DocumentManagerComponent)
   },
   {
-    path: 'security/table-mappings',
-    loadComponent: () => import('./components/table-mappings/table-mapping-manager.component')
-      .then(m => m.TableMappingManagerComponent)
-  },
-  {
     path: 'security/metrics',
     loadComponent: () => import('./components/metrics/metrics-dashboard.component')
       .then(m => m.MetricsDashboardComponent)
@@ -41,6 +36,11 @@ export const routes: Routes = [
     path: 'security/sessions',
     loadComponent: () => import('./components/sessions/session-manager.component')
       .then(m => m.SessionManagerComponent)
+  },
+  {
+    path: 'security/rag-debug',
+    loadComponent: () => import('./components/rag-debug/rag-debug.component')
+      .then(m => m.RagDebugComponent)
   },
   {
     path: 'security/health',

@@ -7,7 +7,7 @@ export const environment = {
   sseTimeout: 300000,
 
   // Library / query defaults
-  defaultLibrary: 'ADBEGT',
+  defaultLibrary: 'ADB800',
   maxIterations: 7,
   searchTopK: 5,
   maxUploadSizeMB: 10,
