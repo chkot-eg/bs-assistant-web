@@ -1,6 +1,6 @@
 // stt.service.ts — Backend-mediated Speech-to-Text via Azure OpenAI Whisper
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
@@ -56,8 +56,12 @@ export class SttService {
       formData.append('language', this.toBcp47Base(language));
     }
 
+    const headers = new HttpHeaders({
+      'X-Session-ID': localStorage.getItem('sessionId') || ''
+    });
+
     return this.http
-      .post<{ text: string }>(`${this.apiUrl}/api/v1/stt/transcribe`, formData)
+      .post<{ text: string }>(`${this.apiUrl}/api/v1/stt/transcribe`, formData, { headers })
       .pipe(map(res => res.text ?? ''));
   }
 
