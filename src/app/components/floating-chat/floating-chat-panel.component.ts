@@ -232,21 +232,23 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
         // Command was cleared, reset tracking
         console.log('[COMPONENT] Command cleared, resetting');
         lastCommand = null;
-      } else if (voiceState.transcript && !voiceState.isRecording && !voiceState.commandDetected) {
-        // Auto-fill textarea when recording stops (no command)
+      } else if (voiceState.transcript && !voiceState.isRecording && !voiceState.isProcessing && !voiceState.commandDetected) {
+        // Auto-fill textarea only after transcription is complete (not while processing)
         console.log('[COMPONENT] Recording stopped, filling textarea');
         this.messageControl.setValue(voiceState.transcript, { emitEvent: false });
         this.adjustTextareaHeight();
       }
     });
 
-    // When the user manually clears the textarea, reset the voice transcript so that
-    // the next recording session starts fresh (no stale saved text gets restored).
+    // Keep savedTranscript in sync with manual textarea edits so that the next
+    // recording appends to what the user actually sees, not stale saved text.
     this.messageControl.valueChanges.pipe(
       takeUntil(this.destroy$)
     ).subscribe(value => {
       if (!value || !value.trim()) {
         this.voiceService.clearTranscript();
+      } else {
+        this.voiceService.syncTranscript(value);
       }
     });
 
