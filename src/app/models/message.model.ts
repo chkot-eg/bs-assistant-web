@@ -89,6 +89,7 @@ export interface Message {
   isError?: boolean;
   queryResponse?: QueryResponse;
   contentType?: 'text' | 'table-list' | 'schema' | 'upload-result' | 'search-result';
+  feedback?: 'up' | 'down' | null;
 }
 
 export interface MessageMetadata {
