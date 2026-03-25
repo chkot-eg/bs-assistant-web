@@ -35,6 +35,7 @@ import { parseMcpResponseText } from '../../utils/mcp-response-parser';
 import { TokenTrackingService } from '../../services/token-tracking.service';
 import { TokenEstimate } from '../../models/token-usage.model';
 import { environment } from '../../../environments/environment';
+import { FeedbackService } from '../../services/feedback.service';
 
 @Component({
   selector: 'app-floating-chat-panel',
@@ -143,6 +144,12 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   private expandedStepSqlEntries = new Set<string>();
   private expandedStreamingSqlEntries = new Set<number>();
 
+  // Feedback state
+  private messageFeedbackMap = new Map<string, 'up' | 'down'>();
+  private feedbackComments = new Map<string, string>();
+  feedbackPopupMessageId: string | null = null;
+  feedbackComment = '';
+
   // History panel state
   showHistory = false;
   historySessions: Session[] = [];
@@ -176,7 +183,8 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private featureTourService: FeatureTourService,
     private tokenTrackingService: TokenTrackingService,
     private ttsService: TtsService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private feedbackService: FeedbackService
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -232,21 +240,23 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
         // Command was cleared, reset tracking
         console.log('[COMPONENT] Command cleared, resetting');
         lastCommand = null;
-      } else if (voiceState.transcript && !voiceState.isRecording && !voiceState.commandDetected) {
-        // Auto-fill textarea when recording stops (no command)
+      } else if (voiceState.transcript && !voiceState.isRecording && !voiceState.isProcessing && !voiceState.commandDetected) {
+        // Auto-fill textarea only after transcription is complete (not while processing)
         console.log('[COMPONENT] Recording stopped, filling textarea');
         this.messageControl.setValue(voiceState.transcript, { emitEvent: false });
         this.adjustTextareaHeight();
       }
     });
 
-    // When the user manually clears the textarea, reset the voice transcript so that
-    // the next recording session starts fresh (no stale saved text gets restored).
+    // Keep savedTranscript in sync with manual textarea edits so that the next
+    // recording appends to what the user actually sees, not stale saved text.
     this.messageControl.valueChanges.pipe(
       takeUntil(this.destroy$)
     ).subscribe(value => {
       if (!value || !value.trim()) {
         this.voiceService.clearTranscript();
+      } else {
+        this.voiceService.syncTranscript(value);
       }
     });
 
@@ -1541,6 +1551,72 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     }
 
     return Array.from(tableNames);
+  }
+
+  // --- Feedback (thumbs up / down) ---
+
+  getFeedback(messageId: string): 'up' | 'down' | null {
+    return this.messageFeedbackMap.get(messageId) ?? null;
+  }
+
+  submitFeedback(messageId: string, rating: 'up' | 'down'): void {
+    const current = this.messageFeedbackMap.get(messageId);
+    if (current === rating) {
+      // Toggle off
+      this.messageFeedbackMap.delete(messageId);
+      this.feedbackPopupMessageId = null;
+      this.feedbackComment = '';
+    } else if (rating === 'down') {
+      // Show comment popup for thumbs down
+      this.feedbackPopupMessageId = messageId;
+      this.feedbackComment = '';
+    } else {
+      // Thumbs up — save immediately
+      this.messageFeedbackMap.set(messageId, 'up');
+      this.feedbackPopupMessageId = null;
+      this.snackBar.open('Thanks for the positive feedback!', '', {
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+    }
+  }
+
+  submitFeedbackComment(messageId: string): void {
+    this.messageFeedbackMap.set(messageId, 'down');
+    const comment = this.feedbackComment.trim();
+    this.feedbackComments.set(messageId, comment);
+    this.feedbackPopupMessageId = null;
+    this.feedbackComment = '';
+
+    // Find the assistant message and the preceding user message
+    const messages = this.chatService.getMessages();
+    const assistantIndex = messages.findIndex(m => m.id === messageId);
+    const assistantMessage = messages[assistantIndex];
+    const userMessage = assistantIndex > 0 && messages[assistantIndex - 1].role === 'user'
+      ? messages[assistantIndex - 1]
+      : null;
+
+    if (assistantMessage && userMessage) {
+      this.feedbackService.submitFeedback({
+        query: userMessage.content,
+        response: assistantMessage.content,
+        comment: comment || undefined
+      }).subscribe({
+        error: () => {} // Fail silently — UI feedback already shown
+      });
+    }
+
+    this.snackBar.open('Thanks for your feedback!', '', {
+      duration: 2000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom'
+    });
+  }
+
+  cancelFeedbackComment(): void {
+    this.feedbackPopupMessageId = null;
+    this.feedbackComment = '';
   }
 
   // --- Copy table from assistant message ---

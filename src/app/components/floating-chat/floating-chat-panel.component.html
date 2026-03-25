@@ -317,29 +317,63 @@
           <div class="message-footer">
             <span class="message-time-text">{{ message.timestamp | date:'HH:mm' }}</span>
 
-            @if (message.role === 'assistant' && !message.isError && isTtsSupported()) {
-              <button mat-icon-button
-                      class="tts-btn"
-                      [class.active]="(ttsState$ | async)?.currentMessageId === message.id
-                                      && ((ttsState$ | async)?.isSynthesizing || (ttsState$ | async)?.isPlaying)"
-                      (click)="toggleTts(message)"
-                      [matTooltip]="(ttsState$ | async)?.currentMessageId === message.id
-                        ? ((ttsState$ | async)?.isPlaying ? 'Stop speaking' : 'Preparing...')
-                        : 'Read aloud'"
-                      [disabled]="(ttsState$ | async)?.isSynthesizing
-                                  && (ttsState$ | async)?.currentMessageId === message.id">
-                @if ((ttsState$ | async)?.isSynthesizing
-                     && (ttsState$ | async)?.currentMessageId === message.id) {
-                  <mat-icon class="tts-loading">hourglass_empty</mat-icon>
-                } @else if ((ttsState$ | async)?.isPlaying
-                            && (ttsState$ | async)?.currentMessageId === message.id) {
-                  <mat-icon class="tts-active">stop_circle</mat-icon>
-                } @else {
-                  <mat-icon>volume_up</mat-icon>
-                }
-              </button>
-            }
+            <div class="message-actions">
+              @if (message.role === 'assistant' && !message.isError) {
+                <button class="feedback-btn"
+                        [class.active-up]="getFeedback(message.id) === 'up'"
+                        (click)="submitFeedback(message.id, 'up')"
+                        title="Good response"
+                        type="button">
+                  <span class="feedback-icon">thumb_up</span>
+                </button>
+                <button class="feedback-btn"
+                        [class.active-down]="getFeedback(message.id) === 'down'"
+                        (click)="submitFeedback(message.id, 'down')"
+                        title="Bad response"
+                        type="button">
+                  <span class="feedback-icon">thumb_down</span>
+                </button>
+              }
+
+              @if (message.role === 'assistant' && !message.isError && isTtsSupported()) {
+                <button mat-icon-button
+                        class="tts-btn"
+                        [class.active]="(ttsState$ | async)?.currentMessageId === message.id
+                                        && ((ttsState$ | async)?.isSynthesizing || (ttsState$ | async)?.isPlaying)"
+                        (click)="toggleTts(message)"
+                        [matTooltip]="(ttsState$ | async)?.currentMessageId === message.id
+                          ? ((ttsState$ | async)?.isPlaying ? 'Stop speaking' : 'Preparing...')
+                          : 'Read aloud'"
+                        [disabled]="(ttsState$ | async)?.isSynthesizing
+                                    && (ttsState$ | async)?.currentMessageId === message.id">
+                  @if ((ttsState$ | async)?.isSynthesizing
+                       && (ttsState$ | async)?.currentMessageId === message.id) {
+                    <mat-icon class="tts-loading">hourglass_empty</mat-icon>
+                  } @else if ((ttsState$ | async)?.isPlaying
+                              && (ttsState$ | async)?.currentMessageId === message.id) {
+                    <mat-icon class="tts-active">stop_circle</mat-icon>
+                  } @else {
+                    <mat-icon>volume_up</mat-icon>
+                  }
+                </button>
+              }
+            </div>
           </div>
+
+          @if (feedbackPopupMessageId === message.id) {
+            <div class="feedback-popup" [@slideDown]>
+              <p class="feedback-popup-title">What could be improved?</p>
+              <textarea class="feedback-popup-textarea"
+                        [(ngModel)]="feedbackComment"
+                        placeholder="Tell us what went wrong (optional)"
+                        rows="3"
+                        maxlength="500"></textarea>
+              <div class="feedback-popup-actions">
+                <button class="feedback-popup-cancel" type="button" (click)="cancelFeedbackComment()">Cancel</button>
+                <button class="feedback-popup-submit" type="button" (click)="submitFeedbackComment(message.id)">Submit</button>
+              </div>
+            </div>
+          }
         </div>
       </div>
     }

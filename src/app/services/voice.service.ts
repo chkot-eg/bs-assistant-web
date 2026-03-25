@@ -126,6 +126,11 @@ export class VoiceService {
     this.updateState({ transcript: '', error: null, commandDetected: null });
   }
 
+  /** Call this whenever the user manually edits the textarea so savedTranscript stays in sync. */
+  syncTranscript(text: string): void {
+    this.savedTranscript = text.trim();
+  }
+
   getSupportedLanguages(): Record<string, string> {
     return this.supportedLanguages;
   }
