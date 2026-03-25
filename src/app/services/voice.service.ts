@@ -55,7 +55,7 @@ export class VoiceService {
   // ---------------------------------------------------------------------------
 
   getDefaultLanguage(): string {
-    return '';
+    return 'en-US';
   }
 
   startRecording(language: string = ''): void {

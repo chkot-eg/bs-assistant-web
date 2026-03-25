@@ -47,3 +47,4 @@ INTEGRATION-GUIDE.md
 FRONTEND-API-CHANGELOG.md
 frontend-sse-sql-steps.md
 /docs
+.env
