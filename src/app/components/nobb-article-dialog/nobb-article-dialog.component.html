@@ -1,0 +1,101 @@
+<div class="nobb-dialog">
+
+  <!-- Header -->
+  <div class="nobb-header">
+    <div class="nobb-title-block">
+      <div class="nobb-number-badge">NOBB {{ data.nobbNumber }}</div>
+      <h2 class="nobb-primary-text">{{ article.primaryText }}</h2>
+      @if (article.secondaryText) {
+        <p class="nobb-secondary-text">{{ article.secondaryText }}</p>
+      }
+    </div>
+    <button mat-icon-button class="nobb-close-btn" (click)="dialogRef.close()" aria-label="Lukk">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="nobb-body">
+    <div class="nobb-main-layout">
+
+      <!-- LEFT: Product image -->
+      <div class="nobb-image-section">
+        @if (primaryImage?.url) {
+          <div class="nobb-image-frame">
+            @if (!imageLoaded && !imageError) {
+              <div class="nobb-img-spinner">
+                <mat-progress-spinner diameter="32" mode="indeterminate" />
+              </div>
+            }
+            @if (!imageError) {
+              <img
+                [src]="primaryImage!.url"
+                [alt]="article.primaryText ?? ''"
+                [class.img-visible]="imageLoaded"
+                (load)="imageLoaded = true"
+                (error)="imageError = true; imageLoaded = true"
+              />
+            }
+            @if (imageError) {
+              <div class="nobb-img-fallback">
+                <mat-icon>image_not_supported</mat-icon>
+                <span>Bilde ikke tilgjengelig</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="nobb-image-frame">
+            <div class="nobb-img-fallback">
+              <mat-icon>image_not_supported</mat-icon>
+              <span>Ingen bilde</span>
+            </div>
+          </div>
+        }
+
+        @if (article.stocked !== undefined) {
+          <div class="nobb-stock-badge" [class.in-stock]="article.stocked" [class.out-of-stock]="!article.stocked">
+            <mat-icon>{{ article.stocked ? 'check_circle' : 'cancel' }}</mat-icon>
+            {{ article.stocked ? 'På lager' : 'Ikke på lager' }}
+          </div>
+        }
+      </div>
+
+      <!-- RIGHT: 4 info cards -->
+      <div class="nobb-cards-grid">
+
+        <!-- General -->
+        <div class="nobb-card">
+          <div class="nobb-card-header">General</div>
+          <div class="nobb-card-body">
+            @if (article.digitalChannelText) {
+              <p class="nobb-card-desc">{{ article.digitalChannelText }}</p>
+            }
+            @if (mainSupplier?.name) {
+              <div class="nobb-field">
+                <span class="nobb-field-label">Manufacturer: </span><span class="nobb-field-value">{{ mainSupplier!.name }}</span>
+              </div>
+              <div class="nobb-field">
+                <span class="nobb-field-label">Item owner: </span><span class="nobb-field-value nobb-link-text">{{ mainSupplier!.name }}</span>
+              </div>
+            }
+            @if (mainSupplier?.participantNumber) {
+              <div class="nobb-field">
+                <span class="nobb-field-label">Participant no: </span><span class="nobb-field-value">{{ mainSupplier!.participantNumber }}</span>
+              </div>
+            }
+            @if (itemType) {
+              <div class="nobb-field">
+                <span class="nobb-field-label">Item type: </span><span class="nobb-field-value">{{ itemType }}</span>
+              </div>
+            }
+            @if (article.seriesName) {
+              <div class="nobb-field">
+                <span class="nobb-field-label">Brand: </span><span class="nobb-field-value">{{ article.seriesName }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+</div>

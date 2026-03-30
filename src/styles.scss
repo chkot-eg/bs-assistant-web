@@ -1,5 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
 
+// NOBB dialog panel overrides
+.nobb-dialog-panel .mat-mdc-dialog-container {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+
 html, body {
   height: 100%;
   margin: 0;
@@ -361,6 +368,64 @@ button:focus,
       -webkit-font-feature-settings: 'liga';
       font-feature-settings: 'liga';
     }
+  }
+
+  // --- NOBB article number links ---
+  .nobb-link {
+    color: #0056b3;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 2px;
+    transition: background 0.15s ease, color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+
+    .nobb-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 1;
+      color: #0056b3;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+
+    &:hover {
+      text-decoration: none;
+      background: rgba(0, 86, 179, 0.08);
+
+      .nobb-icon {
+        color: #003d80;
+        transform: scale(1.15);
+      }
+    }
+
+    // Loading state — spinner appears to the right of the number
+    &.nobb-loading {
+      cursor: wait;
+      pointer-events: none;
+      color: #999;
+      text-decoration: none;
+
+      &::after {
+        content: '';
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid #a0c4f1;
+        border-top-color: #1565c0;
+        border-right-color: #1565c0;
+        border-radius: 50%;
+        animation: nobb-spin 0.55s linear infinite;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  @keyframes nobb-spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 
   .table-wrapper {

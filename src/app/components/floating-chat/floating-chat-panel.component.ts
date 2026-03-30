@@ -36,6 +36,9 @@ import { TokenTrackingService } from '../../services/token-tracking.service';
 import { TokenEstimate } from '../../models/token-usage.model';
 import { environment } from '../../../environments/environment';
 import { FeedbackService } from '../../services/feedback.service';
+import { NobbService } from '../../services/nobb.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-dialog.component';
 
 @Component({
   selector: 'app-floating-chat-panel',
@@ -54,7 +57,8 @@ import { FeedbackService } from '../../services/feedback.service';
     MatSelectModule,
     CdkDrag,
     CdkDragHandle,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatDialogModule
   ],
   templateUrl: './floating-chat-panel.component.html',
   styleUrls: ['./floating-chat-panel.component.scss'],
@@ -184,7 +188,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     private tokenTrackingService: TokenTrackingService,
     private ttsService: TtsService,
     private snackBar: MatSnackBar,
-    private feedbackService: FeedbackService
+    private feedbackService: FeedbackService,
+    private nobbService: NobbService,
+    private dialog: MatDialog
   ) {
     this.isOpen$ = this.chatToggleService.isOpen$;
     this.state$ = this.chatToggleService.state$;
@@ -1465,7 +1471,46 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     html = html.replace(/<table>/g, '<div class="table-wrapper"><table>');
     html = html.replace(/<\/table>/g, '</table></div>');
 
+    // Linkify 8-digit numbers only in NOBB-related table columns
+    html = this.linkifyNobbNumbers(html);
+
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /**
+   * Linkify 8-digit numbers only in table cells under NOBB-related columns.
+   * Non-table 8-digit numbers are left as plain text.
+   */
+  private linkifyNobbNumbers(html: string): string {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    doc.querySelectorAll('table').forEach(table => {
+      // Find which column indices have "NOBB" in the header
+      const nobbColIndices = new Set<number>();
+      table.querySelectorAll('thead th, tr:first-child th').forEach((th, index) => {
+        if (/nobb/i.test(th.textContent || '')) {
+          nobbColIndices.add(index);
+        }
+      });
+
+      if (nobbColIndices.size === 0) return;
+
+      // Linkify 8-digit numbers only in matching columns
+      table.querySelectorAll('tbody tr, tr').forEach(row => {
+        row.querySelectorAll('td').forEach((td, index) => {
+          if (nobbColIndices.has(index)) {
+            const text = td.textContent || '';
+            const match = text.match(/^(\d{8})$/);
+            if (match) {
+              td.innerHTML = `${match[1]} <a class="nobb-link" data-nobb="${match[1]}" href="javascript:void(0)" title="Klikk for å se NOBB artikkel ${match[1]}"><span class="material-icons nobb-icon">image_search</span></a>`;
+            }
+          }
+        });
+      });
+    });
+
+    return doc.body.innerHTML;
   }
 
   getLanguages(): { [key: string]: string } {
@@ -1477,6 +1522,39 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   @HostListener('click', ['$event'])
   onCopyClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
+
+    // Handle NOBB article link click
+    const nobbLink = target.closest('.nobb-link') as HTMLElement;
+    if (nobbLink) {
+      event.preventDefault();
+      event.stopPropagation();
+      const nobbNumber = nobbLink.getAttribute('data-nobb');
+      if (nobbNumber && !nobbLink.classList.contains('nobb-loading')) {
+        nobbLink.classList.add('nobb-loading');
+        this.nobbService.getArticle(nobbNumber).subscribe({
+          next: (article) => {
+            nobbLink.classList.remove('nobb-loading');
+            this.dialog.open(NobbArticleDialogComponent, {
+              data: { article, nobbNumber },
+              width: 'auto',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              panelClass: 'nobb-dialog-panel'
+            });
+          },
+          error: () => {
+            nobbLink.classList.remove('nobb-loading');
+            this.snackBar.open(`Kunne ikke hente artikkel ${nobbNumber}`, '', {
+              duration: 3000,
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom'
+            });
+          }
+        });
+      }
+      return;
+    }
+
     const copyBtn = target.closest('.copy-btn') as HTMLElement;
     if (!copyBtn) return;
 

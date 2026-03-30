@@ -1,0 +1,257 @@
+// ── Override Material dialog surface border-radius ───
+::ng-deep .mat-mdc-dialog-surface {
+  border-radius: 0 !important;
+}
+
+// ── Dialog shell ─────────────────────────────────────
+.nobb-dialog {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  max-width: 95vw;
+  overflow: hidden;  // prevents content from bleeding outside dialog bounds
+}
+
+// ── Header ────────────────────────────────────────────
+.nobb-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 12px;
+}
+
+.nobb-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.nobb-number-badge {
+  display: inline-block;
+  background: #1a5276;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 10px;
+  // border-radius: 4px;
+  width: fit-content;
+  text-transform: uppercase;
+}
+
+.nobb-primary-text {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.nobb-secondary-text {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.nobb-close-btn {
+  flex-shrink: 0;
+  color: #555;
+}
+
+// ── Body ──────────────────────────────────────────────
+.nobb-body {
+  padding: 10px 20px 8px !important;
+  max-height: 70vh;
+  overflow: auto;
+  
+}
+
+// ── Image section ─────────────────────────────────────
+.nobb-image-section {
+  flex-shrink: 0;
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nobb-image-frame {
+  width: 190px;
+  height: 190px;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+
+    &.img-visible {
+      opacity: 1;
+    }
+  }
+
+  .nobb-img-spinner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.nobb-img-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #bbb;
+  font-size: 0.75rem;
+
+  mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.nobb-stock-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  // border-radius: 20px;
+  width: fit-content;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &.in-stock {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.out-of-stock {
+    background: #fce4ec;
+    color: #c62828;
+  }
+}
+
+// ── Main layout ───────────────────────────────────────
+.nobb-main-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 20px 24px 10px;
+  width: fit-content;
+}
+
+// ── Cards grid ────────────────────────────────────────
+.nobb-cards-grid {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+  width: fit-content;
+}
+
+// ── Individual card ───────────────────────────────────
+.nobb-card {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  height: 100%;
+}
+
+.nobb-card-header {
+  background: #c8c8a0;
+  color: #1a1a1a;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  letter-spacing: 0.01em;
+}
+
+.nobb-card-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.nobb-card-desc {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.nobb-field {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #333;
+
+  .nobb-field-label {
+    font-weight: 400;
+    color: #333;
+  }
+
+  .nobb-field-value {
+    font-weight: 400;
+    color: #222;
+  }
+
+  .nobb-link-text {
+    color: #1a7094;
+    font-weight: 400;
+  }
+}
+
+
+// ── Actions ───────────────────────────────────────────
+mat-dialog-actions {
+  padding: 8px 24px 16px !important;
+}
+
+// ── Responsive ────────────────────────────────────────
+@media (max-width: 700px) {
+  .nobb-dialog {
+    width: 100%;
+  }
+
+  .nobb-main-layout {
+    flex-direction: column;
+  }
+
+  .nobb-image-section,
+  .nobb-image-frame {
+    width: 100%;
+    height: 180px;
+  }
+
+  .nobb-cards-grid {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .nobb-cards-grid {
+    width: 100%;
+  }
+}
