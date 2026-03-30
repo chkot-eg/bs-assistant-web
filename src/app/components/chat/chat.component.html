@@ -70,8 +70,8 @@
                 <span class="message-role">{{ message.role === 'user' ? 'Du' : 'Assistant' }}</span>
                 <span class="message-time">{{ message.timestamp | date:'HH:mm' }}</span>
               </div>
-              <div class="message-content" [ngClass]="{'error': message.isError}">
-                {{ message.content }}
+              <div class="message-content markdown-content" [ngClass]="{'error': message.isError}"
+                   [innerHTML]="renderContent(message.content)">
               </div>
               @if (message.metadata && message.metadata.executionTime) {
                 <div class="message-meta">
