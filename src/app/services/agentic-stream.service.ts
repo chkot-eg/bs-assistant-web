@@ -14,6 +14,7 @@ export class AgenticStreamService {
     library?: string;
     sessionId?: string;
     maxIterations?: number;
+    queryMode?: string;
   }): Observable<SseEvent> {
     return new Observable(observer => {
       const url = new URL(`${window.location.origin}${this.apiUrl}/api/v1/query/agentic/stream`);
@@ -21,6 +22,7 @@ export class AgenticStreamService {
       url.searchParams.set('library', params.library ?? environment.defaultLibrary);
       if (params.sessionId) url.searchParams.set('sessionId', params.sessionId);
       if (params.maxIterations) url.searchParams.set('maxIterations', String(params.maxIterations));
+      if (params.queryMode) url.searchParams.set('queryMode', params.queryMode);
 
       const eventSource = new EventSource(url.toString());
 

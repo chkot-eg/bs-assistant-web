@@ -42,38 +42,78 @@
         </span>
       </div>
     </div>
-    <div class="header-actions">
-      <button mat-icon-button
-              (click)="exportChat()"
-              matTooltip="Export Chat"
-              class="header-btn">
-        <mat-icon>download</mat-icon>
+    <div class="header-segmented-control">
+      <button class="segment"
+              [class.active]="selectedQueryMode === 'general'"
+              (click)="selectedQueryMode = 'general'"
+              matTooltip="General database queries">
+        <mat-icon>search</mat-icon>
+        <span class="segment-label">General</span>
       </button>
+      <button class="segment"
+              [class.active]="selectedQueryMode === 'item_search'"
+              (click)="selectedQueryMode = 'item_search'"
+              matTooltip="Product & item search">
+        <mat-icon>inventory_2</mat-icon>
+        <span class="segment-label">Items</span>
+      </button>
+    </div>
+    <div class="header-actions">
+      <!-- More options dropdown -->
+      <button mat-icon-button
+              [matMenuTriggerFor]="moreMenu"
+              matTooltip="More options"
+              class="header-btn">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+
+      <mat-menu #moreMenu="matMenu" panelClass="header-more-menu" xPosition="before">
+        <button mat-menu-item (click)="exportChat()">
+          <div class="menu-icon-wrap"><span class="material-icons">download</span></div>
+          <div class="menu-item-text">
+            <span class="menu-item-label">Export Chat</span>
+            <span class="menu-item-desc">Download conversation as file</span>
+          </div>
+        </button>
+        <div class="menu-divider"></div>
+        <button mat-menu-item
+                (click)="toggleHistory()"
+                [class.active-item]="showHistory">
+          <div class="menu-icon-wrap" [class.active-icon]="showHistory">
+            <span class="material-icons">{{ showHistory ? 'chat' : 'history' }}</span>
+          </div>
+          <div class="menu-item-text">
+            <span class="menu-item-label">{{ showHistory ? 'Back to Chat' : 'Chat History' }}</span>
+            <span class="menu-item-desc">{{ showHistory ? 'Return to conversation' : 'Browse past conversations' }}</span>
+          </div>
+        </button>
+        <div class="menu-divider"></div>
+        <button mat-menu-item (click)="startFeatureTour()">
+          <div class="menu-icon-wrap"><span class="material-icons">tour</span></div>
+          <div class="menu-item-text">
+            <span class="menu-item-label">Feature Tour</span>
+            <span class="menu-item-desc">Learn what Fabrioo can do</span>
+          </div>
+        </button>
+      </mat-menu>
+
+      <!-- Fixed: New Chat -->
       <button mat-icon-button
               (click)="startNewConversation()"
               matTooltip="New Chat"
               class="header-btn">
-         <mat-icon>add_comment</mat-icon>
+        <mat-icon>add_comment</mat-icon>
       </button>
-      <button mat-icon-button
-              (click)="toggleHistory()"
-              [matTooltip]="showHistory ? 'Back to chat' : 'Conversation history'"
-              class="header-btn"
-              [class.active]="showHistory">
-        <mat-icon>{{ showHistory ? 'chat' : 'history' }}</mat-icon>
-      </button>
-      <button mat-icon-button
-              (click)="startFeatureTour()"
-              matTooltip="Feature Tour"
-              class="header-btn">
-        <mat-icon>tour</mat-icon>
-      </button>
+
+      <!-- Fixed: Fullscreen -->
       <button mat-icon-button
               (click)="maximizeChat($event)"
               [matTooltip]="(state$ | async)?.size === 'fullscreen' ? 'Exit Fullscreen' : 'Fullscreen'"
               class="header-btn">
         <mat-icon>{{ (state$ | async)?.size === 'fullscreen' ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
       </button>
+
+      <!-- Fixed: Close -->
       <button mat-icon-button
               (click)="closeChat($event)"
               matTooltip="Close"
@@ -507,7 +547,6 @@
 
       <div class="right-actions-spacer"></div>
     </div>
-
 
     <!-- Quick Actions Expandable -->
     @if (showQuickActions) {

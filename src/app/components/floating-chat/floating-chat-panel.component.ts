@@ -38,6 +38,7 @@ import { environment } from '../../../environments/environment';
 import { FeedbackService } from '../../services/feedback.service';
 import { NobbService } from '../../services/nobb.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-dialog.component';
 
 @Component({
@@ -58,7 +59,8 @@ import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-
     CdkDrag,
     CdkDragHandle,
     MatSnackBarModule,
-    MatDialogModule
+    MatDialogModule,
+    MatMenuModule
   ],
   templateUrl: './floating-chat-panel.component.html',
   styleUrls: ['./floating-chat-panel.component.scss'],
@@ -109,6 +111,9 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   // Context toggle
   useContext = true;
+
+  // Query mode selector
+  selectedQueryMode: string = 'general';
 
   // Quick actions toggle
   showQuickActions = false;
@@ -385,7 +390,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       }
 
       // Try SSE streaming
-      this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext)
+      this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext, this.selectedQueryMode)
         .subscribe({
           next: (event: SseEvent) => this.handleSseEvent(event, inputElement),
           error: (error) => this.handleSseError(error, message, inputElement),
