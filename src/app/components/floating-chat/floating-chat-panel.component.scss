@@ -67,10 +67,6 @@
     .chat-header {
       cursor: pointer;
 
-      .header-segmented-control {
-        display: none;
-      }
-
       &:hover {
         background: linear-gradient(135deg, #1976D2, #1565C0);
       }
@@ -83,25 +79,6 @@
     max-width: calc(100vw - 40px);
     max-height: calc(100vh - 40px);
 
-    .header-segmented-control {
-      display: flex;
-
-      .segment {
-        padding: 6px 16px;
-        gap: 6px;
-        font-size: 13px;
-
-        .segment-label {
-          font-size: 13px;
-        }
-
-        mat-icon {
-          font-size: 16px;
-          height: 16px;
-          width: 16px;
-        }
-      }
-    }
   }
 
   &.fullscreen {
@@ -121,25 +98,6 @@
       display: none !important;
     }
 
-    .header-segmented-control {
-      display: flex;
-
-      .segment {
-        padding: 7px 20px;
-        gap: 6px;
-        font-size: 14px;
-
-        .segment-label {
-          font-size: 14px;
-        }
-
-        mat-icon {
-          font-size: 18px;
-          height: 18px;
-          width: 18px;
-        }
-      }
-    }
   }
 
   // Header
@@ -201,58 +159,6 @@
         }
       }
     }
-
-    // Segmented control in header
-    .header-segmented-control {
-      display: flex;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 3px;
-      gap: 2px;
-      flex-shrink: 0; // tabs never compress — they stay readable
-      min-width: 0;
-
-      .segment {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        padding: 5px 10px;
-        border: none;
-        border-radius: 8px;
-        background: transparent;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        outline: none;
-        white-space: nowrap;
-
-        mat-icon {
-          font-size: 16px;
-          height: 16px;
-          width: 16px;
-        }
-
-        .segment-label {
-          font-size: 11px;
-        }
-
-        &:hover:not(.active) {
-          color: rgba(255, 255, 255, 0.9);
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        &.active {
-          background: rgba(255, 255, 255, 0.25);
-          color: white;
-          font-weight: 600;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-        }
-      }
-    }
-
 
     .header-actions {
       display: flex;
@@ -2108,16 +2014,6 @@
 
           // Hide "Online" status on very narrow screens to reclaim space
           .status { display: none; }
-        }
-      }
-
-      // Show icons only — hide text labels so tabs stay compact
-      .header-segmented-control {
-        .segment {
-          padding: 5px 8px;
-          gap: 0;
-
-          .segment-label { display: none; }
         }
       }
 

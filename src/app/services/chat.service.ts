@@ -269,7 +269,7 @@ export class ChatService {
     URL.revokeObjectURL(url);
   }
 
-  sendMessageStreaming(content: string, useContext: boolean = true, queryMode: string = 'general'): Observable<SseEvent> {
+  sendMessageStreaming(content: string, useContext: boolean = true): Observable<SseEvent> {
     if (!this.canSendRequest()) {
       return throwError(() => new Error('Please wait before sending another message'));
     }
@@ -288,8 +288,7 @@ export class ChatService {
       query: content,
       library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: environment.maxIterations,
-      queryMode: queryMode
+      maxIterations: environment.maxIterations
     });
   }
 

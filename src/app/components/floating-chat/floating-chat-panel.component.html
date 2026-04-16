@@ -42,22 +42,6 @@
         </span>
       </div>
     </div>
-    <div class="header-segmented-control">
-      <button class="segment"
-              [class.active]="selectedQueryMode === 'general'"
-              (click)="selectedQueryMode = 'general'"
-              matTooltip="General database queries">
-        <mat-icon>search</mat-icon>
-        <span class="segment-label">General</span>
-      </button>
-      <button class="segment"
-              [class.active]="selectedQueryMode === 'item_search'"
-              (click)="selectedQueryMode = 'item_search'"
-              matTooltip="Product & item search">
-        <mat-icon>inventory_2</mat-icon>
-        <span class="segment-label">Items</span>
-      </button>
-    </div>
     <div class="header-actions">
       <!-- More options dropdown -->
       <button mat-icon-button

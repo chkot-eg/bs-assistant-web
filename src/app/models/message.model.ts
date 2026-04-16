@@ -6,7 +6,6 @@ export interface QueryRequest {
   query: string;
   library?: string;
   queryType?: string;
-  queryMode?: string;  // "general" | "item_search"
   sessionId?: string;
   executeImmediately?: boolean;
   maxIterations?: number;

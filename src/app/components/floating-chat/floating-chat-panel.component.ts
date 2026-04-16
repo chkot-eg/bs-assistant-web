@@ -112,9 +112,6 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   // Context toggle
   useContext = true;
 
-  // Query mode selector
-  selectedQueryMode: string = 'general';
-
   // Quick actions toggle
   showQuickActions = false;
 
@@ -390,7 +387,7 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
       }
 
       // Try SSE streaming
-      this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext, this.selectedQueryMode)
+      this.streamSubscription = this.chatService.sendMessageStreaming(message, this.useContext)
         .subscribe({
           next: (event: SseEvent) => this.handleSseEvent(event, inputElement),
           error: (error) => this.handleSseError(error, message, inputElement),
