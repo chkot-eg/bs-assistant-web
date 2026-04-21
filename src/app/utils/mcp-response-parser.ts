@@ -89,9 +89,15 @@ export function parseMcpResponseText(text: string): ParsedMcpResponse {
   }
 
   if (!cleanContent.trim()) {
-    cleanContent = metadata.goalAchieved === false
-      ? 'Query execution failed.'
-      : 'Query executed successfully.';
+    // Prefer LLM prose (business rules, explanations) over generic fallback messages
+    const proseContent = stripTechnicalSections(text).trim();
+    if (proseContent) {
+      cleanContent = proseContent;
+    } else {
+      cleanContent = metadata.goalAchieved === false
+        ? 'Query execution failed.'
+        : 'Query executed successfully.';
+    }
   }
 
   if (!metadata.executionPath && (metadata.goalAchieved !== undefined || metadata.executionSteps)) {
@@ -218,7 +224,7 @@ function buildMarkdownTable(jsonData: any, recordCount: number | null): string {
   }
 
   if (columns.length === 0 || rows.length === 0) {
-    return `**${recordCount ?? 0} records found** *(no data rows)*`;
+    return ''; // Empty result — let LLM prose (e.g. business rule explanation) take precedence
   }
 
   const count = recordCount ?? jsonData.rowCount ?? rows.length;
