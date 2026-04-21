@@ -1,7 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
 
-// Fix: EG fonts.scss applies font-family: Montserrat !important to all elements,
-// which overrides Material Icons font. Restore it explicitly.
 .material-icons {
   font-family: 'Material Icons' !important;
 }
