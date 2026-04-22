@@ -43,45 +43,15 @@
       </div>
     </div>
     <div class="header-actions">
-      <!-- More options dropdown -->
+      <!-- Export Chat -->
       <button mat-icon-button
-              [matMenuTriggerFor]="moreMenu"
-              matTooltip="More options"
+              (click)="exportChat()"
+              matTooltip="Export Chat"
               class="header-btn">
-        <mat-icon>more_vert</mat-icon>
+        <mat-icon>download</mat-icon>
       </button>
 
-      <mat-menu #moreMenu="matMenu" panelClass="header-more-menu" xPosition="before">
-        <button mat-menu-item (click)="exportChat()">
-          <div class="menu-icon-wrap"><span class="material-icons">download</span></div>
-          <div class="menu-item-text">
-            <span class="menu-item-label">Export Chat</span>
-            <span class="menu-item-desc">Download conversation as file</span>
-          </div>
-        </button>
-        <div class="menu-divider"></div>
-        <button mat-menu-item
-                (click)="toggleHistory()"
-                [class.active-item]="showHistory">
-          <div class="menu-icon-wrap" [class.active-icon]="showHistory">
-            <span class="material-icons">{{ showHistory ? 'chat' : 'history' }}</span>
-          </div>
-          <div class="menu-item-text">
-            <span class="menu-item-label">{{ showHistory ? 'Back to Chat' : 'Chat History' }}</span>
-            <span class="menu-item-desc">{{ showHistory ? 'Return to conversation' : 'Browse past conversations' }}</span>
-          </div>
-        </button>
-        <div class="menu-divider"></div>
-        <button mat-menu-item (click)="startFeatureTour()">
-          <div class="menu-icon-wrap"><span class="material-icons">tour</span></div>
-          <div class="menu-item-text">
-            <span class="menu-item-label">Feature Tour</span>
-            <span class="menu-item-desc">Learn what Fabrioo can do</span>
-          </div>
-        </button>
-      </mat-menu>
-
-      <!-- Fixed: New Chat -->
+      <!-- New Chat -->
       <button mat-icon-button
               (click)="startNewConversation()"
               matTooltip="New Chat"
@@ -89,7 +59,24 @@
         <mat-icon>add_comment</mat-icon>
       </button>
 
-      <!-- Fixed: Fullscreen -->
+      <!-- Chat History -->
+      <button mat-icon-button
+              (click)="toggleHistory()"
+              [matTooltip]="showHistory ? 'Back to Chat' : 'Chat History'"
+              class="header-btn"
+              [class.active]="showHistory">
+        <mat-icon>{{ showHistory ? 'chat' : 'history' }}</mat-icon>
+      </button>
+
+      <!-- Feature Tour -->
+      <button mat-icon-button
+              (click)="startFeatureTour()"
+              matTooltip="Feature Tour"
+              class="header-btn">
+        <mat-icon>tour</mat-icon>
+      </button>
+
+      <!-- Fullscreen -->
       <button mat-icon-button
               (click)="maximizeChat($event)"
               [matTooltip]="(state$ | async)?.size === 'fullscreen' ? 'Exit Fullscreen' : 'Fullscreen'"
@@ -97,7 +84,7 @@
         <mat-icon>{{ (state$ | async)?.size === 'fullscreen' ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
       </button>
 
-      <!-- Fixed: Close -->
+      <!-- Close -->
       <button mat-icon-button
               (click)="closeChat($event)"
               matTooltip="Close"
