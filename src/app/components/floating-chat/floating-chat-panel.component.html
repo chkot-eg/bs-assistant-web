@@ -43,37 +43,48 @@
       </div>
     </div>
     <div class="header-actions">
+      <!-- Export Chat -->
       <button mat-icon-button
               (click)="exportChat()"
               matTooltip="Export Chat"
               class="header-btn">
         <mat-icon>download</mat-icon>
       </button>
+
+      <!-- New Chat -->
       <button mat-icon-button
               (click)="startNewConversation()"
               matTooltip="New Chat"
               class="header-btn">
-         <mat-icon>add_comment</mat-icon>
+        <mat-icon>add_comment</mat-icon>
       </button>
+
+      <!-- Chat History -->
       <button mat-icon-button
               (click)="toggleHistory()"
-              [matTooltip]="showHistory ? 'Back to chat' : 'Conversation history'"
+              [matTooltip]="showHistory ? 'Back to Chat' : 'Chat History'"
               class="header-btn"
               [class.active]="showHistory">
         <mat-icon>{{ showHistory ? 'chat' : 'history' }}</mat-icon>
       </button>
+
+      <!-- Feature Tour -->
       <button mat-icon-button
               (click)="startFeatureTour()"
               matTooltip="Feature Tour"
               class="header-btn">
         <mat-icon>tour</mat-icon>
       </button>
+
+      <!-- Fullscreen -->
       <button mat-icon-button
               (click)="maximizeChat($event)"
               [matTooltip]="(state$ | async)?.size === 'fullscreen' ? 'Exit Fullscreen' : 'Fullscreen'"
               class="header-btn">
         <mat-icon>{{ (state$ | async)?.size === 'fullscreen' ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
       </button>
+
+      <!-- Close -->
       <button mat-icon-button
               (click)="closeChat($event)"
               matTooltip="Close"
@@ -507,7 +518,6 @@
 
       <div class="right-actions-spacer"></div>
     </div>
-
 
     <!-- Quick Actions Expandable -->
     @if (showQuickActions) {

@@ -193,8 +193,7 @@ export class ChatService {
       }
     } else if (response.data) {
       parts.push(JSON.stringify(response.data, null, 2));
-    } else {
-      parts.push('Query executed successfully (no data returned).');
+    // No data and no explanation — show nothing rather than a confusing generic message
     }
 
     return parts.join('\n');
