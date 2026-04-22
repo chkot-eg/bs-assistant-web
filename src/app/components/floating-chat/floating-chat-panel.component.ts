@@ -38,6 +38,7 @@ import { environment } from '../../../environments/environment';
 import { FeedbackService } from '../../services/feedback.service';
 import { NobbService } from '../../services/nobb.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-dialog.component';
 
 @Component({
@@ -58,7 +59,8 @@ import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-
     CdkDrag,
     CdkDragHandle,
     MatSnackBarModule,
-    MatDialogModule
+    MatDialogModule,
+    MatMenuModule
   ],
   templateUrl: './floating-chat-panel.component.html',
   styleUrls: ['./floating-chat-panel.component.scss'],
