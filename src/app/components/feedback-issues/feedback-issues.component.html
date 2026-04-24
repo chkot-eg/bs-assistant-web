@@ -1,0 +1,118 @@
+<div class="page-header">
+  <div class="header-title">
+    <h1>Feedback Issues</h1>
+    <span class="header-subtitle">Review and resolve user feedback</span>
+  </div>
+  <div class="header-actions">
+    <button mat-flat-button color="primary" (click)="load()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+</div>
+
+@if (isLoading && issues.length === 0) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Loading feedback issues...</p>
+  </div>
+} @else {
+
+  <!-- Summary strip -->
+  <div class="summary-strip">
+    <div class="summary-item open">
+      <mat-icon>radio_button_unchecked</mat-icon>
+      <span>{{ openCount }} Open</span>
+    </div>
+    <div class="summary-item resolved">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ resolvedCount }} Resolved</span>
+    </div>
+    <div class="summary-item total">
+      <mat-icon>forum</mat-icon>
+      <span>{{ issues.length }} Total</span>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <button class="tab-btn" [class.tab-active]="currentFilter === 'all'" (click)="setFilter('all')">
+      All
+    </button>
+    <button class="tab-btn tab-open" [class.tab-active]="currentFilter === 'open'" (click)="setFilter('open')">
+      Open
+    </button>
+    <button class="tab-btn tab-resolved" [class.tab-active]="currentFilter === 'resolved'" (click)="setFilter('resolved')">
+      Resolved
+    </button>
+  </div>
+
+  <!-- Issue list -->
+  @if (issues.length === 0) {
+    <div class="empty-state">
+      <mat-icon>inbox</mat-icon>
+      <p>No issues found</p>
+    </div>
+  } @else {
+    <div class="issue-list">
+      @for (issue of issues; track issue.id) {
+        <div class="issue-item"
+             [class.item-open]="!issue.resolved"
+             [class.item-resolved]="issue.resolved"
+             [class.item-expanded]="isExpanded(issue.id)">
+
+          <!-- Collapsed row — click to expand -->
+          <div class="item-row" (click)="toggleExpand(issue.id)">
+            <div class="item-left">
+              <mat-icon class="status-icon" [class.icon-open]="!issue.resolved" [class.icon-resolved]="issue.resolved">
+                {{ issue.resolved ? 'check_circle' : 'radio_button_unchecked' }}
+              </mat-icon>
+              <span class="item-id">#{{ issue.id }}</span>
+              <span class="item-preview">{{ preview(issue.query) }}</span>
+            </div>
+            <div class="item-right">
+              <span class="item-date">{{ issue.createdAt | date:'d MMM y' }}</span>
+              <mat-icon class="expand-icon" [class.expanded]="isExpanded(issue.id)">expand_more</mat-icon>
+            </div>
+          </div>
+
+          <!-- Expanded detail panel -->
+          <div class="item-detail" [class.detail-visible]="isExpanded(issue.id)">
+            <div class="detail-body">
+              <div class="detail-field">
+                <span class="field-label">Query</span>
+                <p class="field-value">{{ issue.query }}</p>
+              </div>
+
+              @if (issue.comment) {
+                <div class="detail-field">
+                  <span class="field-label">User Comment</span>
+                  <p class="field-value comment">{{ issue.comment }}</p>
+                </div>
+              }
+
+              <div class="detail-field">
+                <span class="field-label">Submitted</span>
+                <p class="field-value">{{ issue.createdAt | date:'medium' }}</p>
+              </div>
+
+              <div class="detail-actions">
+                <button mat-flat-button
+                        [color]="issue.resolved ? undefined : 'primary'"
+                        (click)="toggleResolved(issue, $event)">
+                  <mat-icon>{{ issue.resolved ? 'undo' : 'check_circle' }}</mat-icon>
+                  {{ issue.resolved ? 'Reopen Issue' : 'Mark Resolved' }}
+                </button>
+                <button mat-stroked-button class="delete-btn" (click)="delete(issue.id, $event)">
+                  <mat-icon>delete_outline</mat-icon>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+}
