@@ -1,9 +1,15 @@
+# syntax=docker/dockerfile:1
+
 # ---- Stage 1: Build ----
 FROM node:20-alpine AS build
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json .npmrc ./
+
+ARG NPM_TOKEN
+RUN npm config set //artifactory.eg.dk/:_authToken "${NPM_TOKEN}" && \
+    npm config set //artifactory.eg.dk:443/:_authToken "${NPM_TOKEN}" && \
+    npm ci --legacy-peer-deps
 
 COPY . .
 
