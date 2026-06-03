@@ -84,6 +84,11 @@
                 <p class="field-value">{{ issue.query }}</p>
               </div>
 
+              <div class="detail-field">
+                <span class="field-label">Response</span>
+                <p class="field-value response">{{ issue.response }}</p>
+              </div>
+
               @if (issue.comment) {
                 <div class="detail-field">
                   <span class="field-label">User Comment</span>

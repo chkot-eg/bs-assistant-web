@@ -14,6 +14,7 @@ export class AgenticStreamService {
     library?: string;
     sessionId?: string;
     maxIterations?: number;
+    responseFormat?: 'html' | 'markdown';
   }): Observable<SseEvent> {
     return new Observable(observer => {
       const url = new URL(`${window.location.origin}${this.apiUrl}/api/v1/query/agentic/stream`);
@@ -21,6 +22,10 @@ export class AgenticStreamService {
       url.searchParams.set('library', params.library ?? environment.defaultLibrary);
       if (params.sessionId) url.searchParams.set('sessionId', params.sessionId);
       if (params.maxIterations) url.searchParams.set('maxIterations', String(params.maxIterations));
+      // When the caller asks for HTML, ask the backend to pre-convert the markdown-bearing
+      // fields. Saves the client a marked.parse() round-trip and keeps server and client
+      // in agreement about which dialect of markdown was rendered.
+      if (params.responseFormat) url.searchParams.set('responseFormat', params.responseFormat);
 
       const eventSource = new EventSource(url.toString());
 

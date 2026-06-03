@@ -287,7 +287,9 @@ export class ChatService {
       query: content,
       library: environment.defaultLibrary,
       sessionId: useContext ? (this.currentSessionId ?? undefined) : undefined,
-      maxIterations: environment.maxIterations
+      maxIterations: environment.maxIterations,
+      // Server pre-converts markdown → HTML so the chat panel skips the marked.parse step.
+      responseFormat: 'html'
     });
   }
 

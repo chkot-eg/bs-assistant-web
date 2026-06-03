@@ -580,6 +580,11 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
             if (!completeMetadata.executionPath) {
               completeMetadata.executionPath = 'AGENTIC';
             }
+            // Store the pre-converted HTML detail view (only present when responseFormat=html).
+            // Rendered in the "Full details" expandable panel via renderHtml().
+            if (meta.formattedResponse) {
+              completeMetadata.formattedResponse = meta.formattedResponse;
+            }
           }
         } else if (rawResult && typeof rawResult === 'object' && event.data.agenticMetadata) {
           // SSE complete with agenticMetadata
@@ -1460,13 +1465,18 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
 
   renderMarkdown(content: string): SafeHtml {
     if (!content) return '';
-    let html = marked.parse(content, { async: false }) as string;
+    // Content from the backend may already be HTML when the chat service requested
+    // responseFormat=html. Skip the marked.parse() step in that case — running it
+    // over HTML escapes the angle brackets and renders raw tags as visible text.
+    let html = this.looksLikeHtml(content)
+      ? content
+      : (marked.parse(content, { async: false }) as string);
 
     // Inject copy button into <pre> blocks
     html = html.replace(
       /<pre>/g,
       '<pre class="copyable-block"><button class="copy-btn" title="Copy code" type="button">' +
-      '<span class="copy-icon">content_copy</span></button>'
+      '<span class="material-icons copy-icon">content_copy</span></button>'
     );
 
     // Wrap <table> blocks (no inline copy button — handled by copy-message-btn)
@@ -1477,6 +1487,53 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
     html = this.linkifyNobbNumbers(html);
 
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /**
+   * Detect whether a string is server-emitted HTML rather than markdown.
+   * The backend's MarkdownToHtmlConverter produces output starting with a block-level
+   * tag (`<p>`, `<table>`, `<h2>`, `<ul>`, …) followed by structure. Markdown that
+   * happens to start with `<` (rare: inline HTML in markdown) is still safe — marked
+   * would also pass it through; we just avoid re-parsing.
+   */
+  private looksLikeHtml(content: string): boolean {
+    const trimmed = content.trimStart();
+    if (!trimmed.startsWith('<')) return false;
+    return /^<\s*(p|table|h[1-6]|ul|ol|pre|div|section|article|blockquote)\b/i.test(trimmed);
+  }
+
+  /**
+   * Render a string that is already known to be HTML (e.g. `formattedResponse` from the
+   * server when `responseFormat=html`). Skips `marked.parse` entirely and applies only
+   * the post-processing steps: copy buttons on `<pre>` blocks, table wrappers, NOBB
+   * number linkification, and Angular DomSanitizer trust.
+   */
+  renderHtml(content: string): SafeHtml {
+    if (!content) return '';
+    let html = content;
+    // Inject copy button into <pre> blocks (same injection as renderMarkdown)
+    html = html.replace(
+      /<pre>/g,
+      '<pre class="copyable-block"><button class="copy-btn" title="Copy code" type="button">' +
+      '<span class="material-icons copy-icon">content_copy</span></button>'
+    );
+    // Wrap <table> blocks
+    html = html.replace(/<table>/g, '<div class="table-wrapper"><table>');
+    html = html.replace(/<\/table>/g, '</table></div>');
+    // Linkify 8-digit NOBB numbers
+    html = this.linkifyNobbNumbers(html);
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  // ── "Full details" (formattedResponse) panel toggle ──────────────────────
+  private formattedExpanded = new Map<string, boolean>();
+
+  toggleFormattedExpanded(messageId: string): void {
+    this.formattedExpanded.set(messageId, !this.formattedExpanded.get(messageId));
+  }
+
+  isFormattedExpanded(messageId: string): boolean {
+    return this.formattedExpanded.get(messageId) ?? false;
   }
 
   /**
@@ -1704,9 +1761,12 @@ export class FloatingChatPanelComponent implements OnInit, AfterViewChecked, OnD
   copyMessage(event: MouseEvent, content: string): void {
     const btn = (event.target as HTMLElement).closest('.copy-message-btn') as HTMLElement;
 
-    // Parse markdown to HTML, then extract only table content
+    // Parse markdown to HTML, then extract only table content. When the backend already
+    // sent HTML (responseFormat=html on the stream request), skip the marked round-trip.
     const tmp = document.createElement('div');
-    tmp.innerHTML = (marked.parse(content, { async: false }) as string);
+    tmp.innerHTML = this.looksLikeHtml(content)
+      ? content
+      : (marked.parse(content, { async: false }) as string);
 
     const tables = tmp.querySelectorAll('table');
     let textToCopy = '';

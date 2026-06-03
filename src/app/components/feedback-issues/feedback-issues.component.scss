@@ -238,7 +238,7 @@
   overflow: hidden;
   transition: max-height 0.25s ease;
 
-  &.detail-visible { max-height: 500px; }
+  &.detail-visible { max-height: 800px; }
 }
 
 .detail-body {
@@ -269,6 +269,14 @@
     color: #1a1a1a;
     line-height: 1.6;
     word-break: break-word;
+
+    &.response {
+      color: #424242;
+      background: #fff;
+      border-left: 3px solid #90CAF9;
+      padding: 8px 12px;
+      border-radius: 0 4px 4px 0;
+    }
 
     &.comment {
       color: #424242;

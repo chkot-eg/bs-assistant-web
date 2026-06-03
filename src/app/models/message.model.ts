@@ -11,6 +11,12 @@ export interface QueryRequest {
   maxIterations?: number;
   includeDebugDetails?: boolean;
   parameters?: Record<string, any>;
+  /**
+   * Output format for the markdown-bearing response fields.
+   * "html" → server returns formattedResponse / synthesizedAnswer pre-converted to HTML.
+   * Omitted or "markdown" → server emits markdown (default; clients render it themselves).
+   */
+  responseFormat?: 'html' | 'markdown';
 }
 
 // ==========================================
@@ -107,6 +113,8 @@ export interface MessageMetadata {
   executedSql?: string;
   executionSteps?: AgenticStep[];
   synthesizedAnswer?: string;
+  /** Full detail view in HTML (only populated when responseFormat=html). Rendered in the "Full details" expandable panel. */
+  formattedResponse?: string;
 }
 
 export interface StreamingStep {

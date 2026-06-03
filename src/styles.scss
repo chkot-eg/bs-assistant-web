@@ -353,10 +353,7 @@ button:focus,
 
   // --- Code ---
   pre {
-    background: #1e1e2e;
-    color: #cdd6f4;
     border-radius: 8px;
-    padding: 12px 14px;
     overflow-x: auto;
     margin: 8px 0;
     font-size: 12px;
@@ -368,6 +365,53 @@ button:focus,
       border-radius: 0;
       color: inherit;
       font-size: inherit;
+    }
+  }
+
+  // Code block wrapper added by the hljs renderer — holds the copy button
+  .code-wrapper {
+    position: relative;
+    margin: 8px 0;
+
+    pre.hljs {
+      margin: 0;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      border-radius: 5px;
+      color: #a6adc8;
+      cursor: pointer;
+      padding: 3px 6px;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, color 0.15s;
+      z-index: 1;
+
+      .material-icons {
+        font-size: 15px;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.16);
+        color: #cdd6f4;
+      }
+
+      &.copied {
+        color: #a6e3a1;
+        opacity: 1;
+      }
+    }
+
+    &:hover .copy-btn {
+      opacity: 1;
     }
   }
 

@@ -13,11 +13,27 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
+import hljs from 'highlight.js';
 import { ChatService } from '../../services/chat.service';
 import { NobbService } from '../../services/nobb.service';
 import { NobbArticleDialogComponent } from '../nobb-article-dialog/nobb-article-dialog.component';
 import { Message } from '../../models/message.model';
 import { Observable } from 'rxjs';
+
+marked.use({
+  renderer: {
+    code({ text, lang }: { text: string; lang?: string }) {
+      const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
+      const highlighted = hljs.highlight(text, { language }).value;
+      const encoded = encodeURIComponent(text);
+      return `<div class="code-wrapper">` +
+        `<button class="copy-btn" data-code="${encoded}" title="Kopiér kode">` +
+        `<span class="material-icons">content_copy</span></button>` +
+        `<pre class="hljs"><code class="language-${language}">${highlighted}</code></pre>` +
+        `</div>`;
+    }
+  }
+});
 
 @Component({
   selector: 'app-chat',
@@ -72,10 +88,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   renderContent(content: string): SafeHtml {
     if (!content) return '';
-    let html = marked.parse(content, { async: false }) as string;
+    // Content may already be HTML when the chat service requested responseFormat=html
+    // from the backend. marked.parse would HTML-escape angle brackets in that case
+    // and render raw tags as text, so detect and pass HTML straight through.
+    let html = this.looksLikeHtml(content) ? content : (marked.parse(content) as string);
     // Linkify 8-digit numbers only in NOBB-related table columns
     html = this.linkifyNobbNumbers(html);
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  private looksLikeHtml(content: string): boolean {
+    const trimmed = content.trimStart();
+    if (!trimmed.startsWith('<')) return false;
+    return /^<\s*(p|table|h[1-6]|ul|ol|pre|div|section|article|blockquote)\b/i.test(trimmed);
   }
 
   private linkifyNobbNumbers(html: string): string {
@@ -110,6 +135,25 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent): void {
+    const copyBtn = (event.target as HTMLElement).closest('.copy-btn') as HTMLElement;
+    if (copyBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      const code = decodeURIComponent(copyBtn.getAttribute('data-code') || '');
+      navigator.clipboard.writeText(code).then(() => {
+        const icon = copyBtn.querySelector('.material-icons');
+        if (icon) {
+          icon.textContent = 'check';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            icon.textContent = 'content_copy';
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        }
+      });
+      return;
+    }
+
     const nobbLink = (event.target as HTMLElement).closest('.nobb-link') as HTMLElement;
     if (!nobbLink) return;
     event.preventDefault();
