@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { UserMappingService } from '../../services/user-mapping.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-header',
@@ -25,6 +27,10 @@ import { RouterModule } from '@angular/router';
           </nav>
         </div>
         <div class="top-bar-right">
+          <div class="user-chip" *ngIf="displayName">
+            <span class="user-name">{{ displayName }}</span>
+            <span class="user-lib" *ngIf="library">{{ library }}</span>
+          </div>
           <a routerLink="/security/dashboard" class="security-info-btn">
             <span class="security-icon">&#x1F6E1;</span>
             Security Info
@@ -52,4 +58,17 @@ import { RouterModule } from '@angular/router';
   `,
     styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent { }
+export class HeaderComponent {
+  constructor(
+    private userMappingService: UserMappingService,
+    private authService: AuthService
+  ) {}
+
+  get displayName(): string {
+    return this.userMappingService.displayName || this.authService.getUserName();
+  }
+
+  get library(): string {
+    return this.userMappingService.library;
+  }
+}

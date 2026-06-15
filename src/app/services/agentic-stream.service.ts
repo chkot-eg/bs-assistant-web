@@ -2,12 +2,16 @@ import { Injectable, NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { SseEvent, SseEventType } from '../models/sse-events.model';
+import { UserMappingService } from './user-mapping.service';
 
 @Injectable({ providedIn: 'root' })
 export class AgenticStreamService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private ngZone: NgZone) {}
+  constructor(
+    private ngZone: NgZone,
+    private userMappingService: UserMappingService
+  ) {}
 
   connectStream(params: {
     query: string;
@@ -19,7 +23,11 @@ export class AgenticStreamService {
     return new Observable(observer => {
       const url = new URL(`${window.location.origin}${this.apiUrl}/api/v1/query/agentic/stream`);
       url.searchParams.set('query', params.query);
-      url.searchParams.set('library', params.library ?? environment.defaultLibrary);
+      // Use the ERP library from user mapping — falls back to explicit param or env default
+      const library = this.userMappingService.library
+        || params.library
+        || environment.defaultLibrary;
+      url.searchParams.set('library', library);
       if (params.sessionId) url.searchParams.set('sessionId', params.sessionId);
       if (params.maxIterations) url.searchParams.set('maxIterations', String(params.maxIterations));
       // When the caller asks for HTML, ask the backend to pre-convert the markdown-bearing
