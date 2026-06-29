@@ -33,7 +33,8 @@ export class SidebarComponent {
     { label: 'Metrics', route: '/security/metrics', icon: 'analytics' },
     { label: 'Sessions', route: '/security/sessions', icon: 'forum' },
     { label: 'RAG Debug', route: '/security/rag-debug', icon: 'bug_report' },
-    { label: 'Health', route: '/security/health', icon: 'monitor_heart' }
+    { label: 'Health', route: '/security/health', icon: 'monitor_heart' },
+    { label: 'Feedback Issues', route: '/security/feedback-issues', icon: 'feedback' }
   ];
 
   shortcuts: ShortcutItem[] = [

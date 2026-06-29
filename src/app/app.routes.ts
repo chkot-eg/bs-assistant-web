@@ -47,5 +47,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/health/health-dashboard.component')
       .then(m => m.HealthDashboardComponent)
   },
+  {
+    path: 'security/feedback-issues',
+    loadComponent: () => import('./components/feedback-issues/feedback-issues.component')
+      .then(m => m.FeedbackIssuesComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
